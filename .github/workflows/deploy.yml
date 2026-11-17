@@ -35,7 +35,7 @@ jobs:
           echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       - name: Build and Push Backend Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -47,7 +47,7 @@ jobs:
             ghcr.io/${{ steps.repo_name.outputs.OWNER_LC }}/policy-analytics-backend:${{ github.sha }}
 
       - name: Build and Push Frontend Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
