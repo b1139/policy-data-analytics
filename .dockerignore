@@ -1,0 +1,36 @@
+# Git and OS
+.git/
+.gitignore
+.DS_Store
+
+# Dev tools & Docs
+Makefile
+setup.py
+README.md
+ARCHITECTURE.md
+TESTING.md
+DATA_SOURCES.md
+LEDGER.md
+HLD.md
+LLD.md
+TECH_STACK.md
+stories/
+docs/
+.agents/
+
+# Virtual environments & Dependencies
+venv/
+.venv/
+node_modules/
+frontend/node_modules/
+
+# Test artifacts & Cache
+tests/
+backend/tests/
+.pytest_cache/
+.coverage
+coverage_html/
+htmlcov/
+.next/
+dist/
+build/

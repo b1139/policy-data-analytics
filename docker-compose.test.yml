@@ -1,0 +1,47 @@
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: policy_analytics_postgres_test
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-policy_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-policy_pass}
+      POSTGRES_DB: ${POSTGRES_DB_TEST:-policy_analytics_test}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-policy_user} -d ${POSTGRES_DB_TEST:-policy_analytics_test}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: policy_analytics_redis_test
+    restart: "no"
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: policy_analytics_backend_test
+    restart: "no"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-policy_user}:${POSTGRES_PASSWORD:-policy_pass}@postgres-test:5432/${POSTGRES_DB_TEST:-policy_analytics_test}
+      - REDIS_URL=redis://redis-test:6379/0
+      - ENVIRONMENT=testing
+      - MOCK_LLM=true
+      - SECRET_KEY=test-secret-key-min-32-chars-long-test123
+    command: ["pytest", "tests"]
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy

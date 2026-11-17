@@ -1,0 +1,17 @@
+/** @type {import('next').NextConfig} */
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000';
+
+const nextConfig = {
+  reactStrictMode: true,
+  output: 'standalone',
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
+  },
+};
+
+export default nextConfig;
