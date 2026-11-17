@@ -141,8 +141,92 @@ if not AUTO_YES and sys.stdin.isatty():
     except (EOFError, KeyboardInterrupt):
         print()
 
+REPO_URL = "https://github.com/b1139/policy-data-analytics.git"
+
+def ensure_repository(start_dir: Path) -> Path:
+    """Verify that the repository is cloned and core codebase files are present.
+    If missing, prompts to clone https://github.com/b1139/policy-data-analytics.git.
+    """
+    repo_markers = [
+        start_dir / "backend" / "app" / "main.py",
+        start_dir / "frontend" / "app",
+        start_dir / "docker-compose.yml",
+    ]
+    if all(m.exists() for m in repo_markers):
+        # Already cloned and complete
+        git_dir = start_dir / ".git"
+        if git_dir.exists():
+            remote_check = subprocess.run(
+                "git remote get-url origin", shell=True, capture_output=True, text=True, cwd=str(start_dir)
+            )
+            remote_url = remote_check.stdout.strip()
+            if remote_url:
+                print_ok(f"Repository verified: {remote_url}")
+            else:
+                print_ok("Repository codebase files verified")
+        else:
+            print_ok("Repository codebase files verified")
+        return start_dir
+
+    # Check if a policy-data-analytics subfolder exists with repo files
+    subfolder = start_dir / "policy-data-analytics"
+    if subfolder.is_dir() and (subfolder / "backend" / "app" / "main.py").exists():
+        print_ok(f"Found repository files in subdirectory: {subfolder.name}")
+        os.chdir(subfolder)
+        return subfolder
+
+    print_warn("Repository codebase files (backend, frontend, docker-compose.yml) not found in current directory.")
+    if not shutil.which("git"):
+        print_err("Git is not installed or not in PATH. Please install Git to clone the repository.")
+        sys.exit(1)
+
+    print(f"\n  {BOLD}Official Repository URL:{RESET} {CYAN}{REPO_URL}{RESET}")
+    clone_choice = ask("Clone repository now? (Y/n)", default="Y").strip().lower() not in ("n", "no")
+    if not clone_choice:
+        print_err("Setup cannot continue without the repository codebase. Please clone it manually.")
+        sys.exit(1)
+
+    # Check if start_dir contains other user files besides setup.py
+    existing_items = [f for f in start_dir.iterdir() if f.name not in ("setup.py", ".DS_Store")]
+    if not existing_items:
+        # Directory is empty except setup.py: clone directly into current directory
+        print(f"  Cloning {REPO_URL} into current directory...", end="", flush=True)
+        temp_dir = start_dir / "_temp_clone"
+        res = subprocess.run(f'git clone "{REPO_URL}" "{temp_dir}"', shell=True, capture_output=True, text=True)
+        if res.returncode == 0:
+            for item in temp_dir.iterdir():
+                dest = start_dir / item.name
+                if dest.exists():
+                    if dest.is_dir():
+                        shutil.rmtree(dest)
+                    else:
+                        dest.unlink()
+                shutil.move(str(item), str(dest))
+            shutil.rmtree(temp_dir)
+            print(f" {GREEN}done{RESET}")
+            return start_dir
+        else:
+            print(f" {RED}failed{RESET}\n{res.stderr.strip()}")
+            sys.exit(1)
+    else:
+        # Directory has other files: clone into policy-data-analytics subfolder
+        print(f"  Cloning {REPO_URL} into ./policy-data-analytics...", end="", flush=True)
+        clone_cmd = f'git clone "{REPO_URL}" "{subfolder}"'
+        res = subprocess.run(clone_cmd, shell=True, capture_output=True, text=True)
+        if res.returncode == 0:
+            print(f" {GREEN}done{RESET}")
+            os.chdir(subfolder)
+            return subfolder
+        else:
+            print(f" {RED}failed{RESET}\n{res.stderr.strip()}")
+            sys.exit(1)
+
 # ─── 1. Check prerequisites ──────────────────────────────────────────────────
-print_step(f"1/{total_steps}  Checking prerequisites")
+print_step(f"1/{total_steps}  Checking prerequisites & Repository")
+
+project_root = ensure_repository(Path(__file__).resolve().parent)
+backend_dir = project_root / "backend"
+frontend_dir = project_root / "frontend"
 
 missing = []
 
@@ -189,10 +273,6 @@ if missing:
 
 # ─── 2. Collect API keys ─────────────────────────────────────────────────────
 print_step(f"2/{total_steps}  Configuring API Keys & Data Connectors")
-
-project_root = Path(__file__).resolve().parent
-backend_dir = project_root / "backend"
-frontend_dir = project_root / "frontend"
 
 # Read existing configuration if present to provide seamless defaults
 existing_env: dict[str, str] = {}
