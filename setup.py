@@ -290,11 +290,11 @@ for env_file in [project_root / ".env", backend_dir / ".env"]:
 if USE_MOCK:
     print_ok("Configured with offline mock LLM and mock data fixtures (--mock flag active)")
     gemini_key = ""
-    gemini_model = "gemini-1.5-flash"
+    gemini_model = "gemini-3.5-flash-lite"
     bedrock_key = ""
     aws_secret = ""
-    aws_region = "ap-south-2"
-    bedrock_model = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    aws_region = "ap-south-1"
+    bedrock_model = "apac.amazon.nova-lite-v1:0"
     mock_llm = "true"
     enable_singstat_mcp = True
     singstat_mcp_url = "https://chatwithsandra.singstat.gov.sg/mcp"
@@ -310,13 +310,13 @@ else:
 """)
 
     gemini_key = ask("Google Gemini API key               (AIzaSy...)", default=existing_env.get("GEMINI_API_KEY", ""))
-    gemini_model = ask("Google Gemini Model                 ", default=existing_env.get("GEMINI_MODEL", "gemini-1.5-flash"))
+    gemini_model = ask("Google Gemini Model                 ", default=existing_env.get("GEMINI_MODEL", "gemini-3.5-flash-lite"))
     bedrock_key = ask("Amazon Bedrock API key / Token / Key ID", default=existing_env.get("BEDROCK_API_KEY", ""))
     aws_secret = existing_env.get("AWS_SECRET_ACCESS_KEY", "")
     if bedrock_key.startswith("AKIA"):
         aws_secret = ask("AWS Secret Access Key               ", default=aws_secret)
-    aws_region = ask("AWS Region for Bedrock (ap-south-2 / ap-south-1 / us-east-1)", default=existing_env.get("AWS_REGION", "ap-south-2"))
-    bedrock_model = ask("Amazon Bedrock Model ID             ", default=existing_env.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0"))
+    aws_region = ask("AWS Region for Bedrock (ap-south-1 / ap-south-2 / us-east-1)", default=existing_env.get("AWS_REGION", "ap-south-1"))
+    bedrock_model = ask("Amazon Bedrock Model ID             ", default=existing_env.get("BEDROCK_MODEL_ID", "apac.amazon.nova-lite-v1:0"))
 
     # Determine Mock LLM mode
     if not gemini_key and not bedrock_key:
@@ -375,8 +375,8 @@ REDIS_URL={redis_url}
 
 # 3. LLM Providers
 MOCK_LLM={mock_llm}
-PRIMARY_LLM_PROVIDER=gemini
-FALLBACK_LLM_PROVIDER=bedrock
+PRIMARY_LLM_PROVIDER=bedrock
+FALLBACK_LLM_PROVIDER=gemini
 LLM_FALLBACK=false
 LLM_TIMEOUT_SECONDS=30
 

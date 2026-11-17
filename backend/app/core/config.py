@@ -104,7 +104,7 @@ class Settings(BaseSettings):
 
     # Google Gemini
     GEMINI_API_KEY: str | None = None
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     GEMINI_TIMEOUT_SECONDS: float = 30.0
 
     # Amazon Bedrock
@@ -112,9 +112,9 @@ class Settings(BaseSettings):
     AWS_BEARER_TOKEN_BEDROCK: str | None = None
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_SECRET_ACCESS_KEY: str | None = None
-    AWS_REGION: str = "ap-south-2"
-    AWS_DEFAULT_REGION: str = "ap-south-2"
-    BEDROCK_MODEL_ID: str = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    AWS_REGION: str = "ap-south-1"
+    AWS_DEFAULT_REGION: str = "ap-south-1"
+    BEDROCK_MODEL_ID: str = "apac.amazon.nova-lite-v1:0"
     BEDROCK_TIMEOUT_SECONDS: float = 30.0
 
     # OpenAI & Anthropic (Fallbacks)
