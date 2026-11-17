@@ -25,7 +25,7 @@ langchain-anthropic>=0.1.17
 
 # Data Processing & Analytics
 pandas>=2.2.0
-openpyxl>=3.1.2
+openpyxl>=3.1.5
 numpy>=1.26.0
 scipy>=1.13.0
 plotly>=5.20.0
