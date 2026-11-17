@@ -44,7 +44,10 @@ def heuristic_chart_type(query: str, profile: dict[str, Any]) -> str:
     q = (query or "").lower()
     if profile.get("is_comparison") and "grouped_bar" in feasible:
         return "grouped_bar"
-    if any(k in q for k in ("share", "composition", "proportion", "breakdown")) and "pie" in feasible:
+    if (
+        any(k in q for k in ("share", "composition", "proportion", "breakdown"))
+        and "pie" in feasible
+    ):
         return "pie"
     if any(k in q for k in ("distribution", "by sector", "by industry", "rank", "top ")):
         if "horizontal_bar" in feasible and profile.get("n_categories", 0) > 6:
@@ -98,7 +101,9 @@ async def select_chart_type(query: str, profile: dict[str, Any]) -> dict[str, st
                 "reason": "Selected by LLM from query intent and data shape.",
                 "selected_by": "llm",
             }
-        logger.info("LLM chart choice %r unusable (feasible=%s); using heuristic.", chart_type, feasible)
+        logger.info(
+            "LLM chart choice %r unusable (feasible=%s); using heuristic.", chart_type, feasible
+        )
     except Exception as exc:
         logger.warning("LLM chart type selection failed (%s); using heuristic.", exc)
 

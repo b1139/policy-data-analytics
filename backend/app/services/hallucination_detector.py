@@ -10,6 +10,7 @@ Provides multi-dimensional verification of LLM-generated narrative insights:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 from typing import Any
@@ -185,7 +186,9 @@ class HallucinationDetector:
             else:
                 src = str(getattr(ds, "source", "") or "").lower().strip()
                 title = str(getattr(ds, "title", "") or "").lower().strip()
-                agency = str(getattr(ds, "agency", getattr(ds, "publisher", "")) or "").lower().strip()
+                agency = (
+                    str(getattr(ds, "agency", getattr(ds, "publisher", "")) or "").lower().strip()
+                )
                 ds_id = str(getattr(ds, "dataset_id", getattr(ds, "id", "")) or "").lower().strip()
 
             for token in (src, title, agency, ds_id):
@@ -193,7 +196,7 @@ class HallucinationDetector:
                     valid_identifiers.add(token)
 
             # Expand recognized aliases
-            for group_key, aliases in self.KNOWN_AGENCIES.items():
+            for aliases in self.KNOWN_AGENCIES.values():
                 if any(alias in src or alias in agency or alias in title for alias in aliases):
                     valid_identifiers.update(aliases)
 
@@ -203,9 +206,10 @@ class HallucinationDetector:
 
         # Check for mentions of external non-grounded bodies
         for ext in self.EXTERNAL_INSTITUTIONS:
-            if re.search(rf"\b{re.escape(ext)}\b", text_lower):
-                if not any(ext in valid_id for valid_id in valid_identifiers):
-                    mentioned_sources.append(ext.title())
+            if re.search(rf"\b{re.escape(ext)}\b", text_lower) and not any(
+                ext in valid_id for valid_id in valid_identifiers
+            ):
+                mentioned_sources.append(ext.title())
 
         # Check for known agency mentions that are NOT in dataset metadata
         for group_name, aliases in self.KNOWN_AGENCIES.items():
@@ -235,7 +239,13 @@ class HallucinationDetector:
                 raw_cand = match.group(1).strip()
                 cand_lower = raw_cand.lower()
                 # Exclude common non-source phrases
-                if cand_lower in {"official statistics", "the data", "our analysis", "recent findings", "the table"}:
+                if cand_lower in {
+                    "official statistics",
+                    "the data",
+                    "our analysis",
+                    "recent findings",
+                    "the table",
+                }:
                     continue
                 # Verify whether candidate is supported by valid_identifiers
                 cand_grounded = any(
@@ -353,7 +363,9 @@ class HallucinationDetector:
                 continue
 
             # Skip small integers 1-5 when used as ordinal bullet points (e.g. "1.", "2.")
-            if val in {1, 2, 3, 4, 5} and re.search(rf"(?:^|\n)\s*\(?{re.escape(num_str)}[\.\)]", insights):
+            if val in {1, 2, 3, 4, 5} and re.search(
+                rf"(?:^|\n)\s*\(?{re.escape(num_str)}[\.\)]", insights
+            ):
                 continue
 
             matched = False
@@ -480,17 +492,13 @@ class HallucinationDetector:
             nums.add(float(obj))
         elif isinstance(obj, str):
             clean = obj.replace(",", "").rstrip("%").strip()
-            try:
+            with contextlib.suppress(ValueError):
                 nums.add(float(clean))
-            except ValueError:
-                pass
         elif isinstance(obj, dict):
             for k, v in obj.items():
                 clean_k = str(k).replace(",", "").rstrip("%").strip()
-                try:
+                with contextlib.suppress(ValueError):
                     nums.add(float(clean_k))
-                except ValueError:
-                    pass
                 nums.update(cls._extract_numbers_from_stats(v))
         elif isinstance(obj, (list, tuple, set)):
             for item in obj:

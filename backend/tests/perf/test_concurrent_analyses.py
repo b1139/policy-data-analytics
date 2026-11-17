@@ -10,6 +10,7 @@ Validates Story S32 acceptance criteria:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import math
 import os
 import tempfile
@@ -29,7 +30,6 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 
 from app.agents.graph import run_analysis
-from app.agents.state import AgentName
 from app.core.config import settings
 from app.core.database import Base
 from app.crud.analysis import create_analysis, get_analysis
@@ -92,10 +92,8 @@ async def wal_db_factory() -> AsyncGenerator[async_sessionmaker[AsyncSession], N
         for suffix in ("", "-wal", "-shm"):
             p = f"{db_path}{suffix}"
             if os.path.exists(p):
-                try:
+                with contextlib.suppress(OSError):
                     os.remove(p)
-                except OSError:
-                    pass
 
 
 @pytest.mark.asyncio
@@ -112,7 +110,6 @@ async def test_10_concurrent_analyses(
     """
     concurrency_count = 10
     latencies: list[float] = []
-    results: list[dict[str, Any]] = []
 
     queries = [
         f"Analyze Singapore economic and wage disparity sector trends index #{i}"
@@ -164,10 +161,7 @@ async def test_10_concurrent_analyses(
         }
 
     wall_start = time.perf_counter()
-    worker_tasks = [
-        run_single_worker(i, queries[i])
-        for i in range(concurrency_count)
-    ]
+    worker_tasks = [run_single_worker(i, queries[i]) for i in range(concurrency_count)]
     completed_outputs = await asyncio.gather(*worker_tasks, return_exceptions=False)
     total_wall_time = time.perf_counter() - wall_start
 
@@ -200,7 +194,10 @@ async def test_10_concurrent_analyses(
 
     # Check if code coverage tracing (sys.settrace / pytest-cov) is active
     import sys
-    is_tracing = bool(sys.gettrace() is not None or "pytest_cov" in sys.modules or "coverage" in sys.modules)
+
+    is_tracing = bool(
+        sys.gettrace() is not None or "pytest_cov" in sys.modules or "coverage" in sys.modules
+    )
     threshold = 20.0 if is_tracing else 10.0
 
     # Acceptance criterion: P95 completion time < 10 seconds (mock mode, normalized for coverage tracing)

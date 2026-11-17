@@ -83,6 +83,7 @@ async def init_db() -> None:
         if "postgresql" in settings.DATABASE_URL.lower():
             try:
                 import aiosqlite  # noqa: F401
+
                 fallback_url = "sqlite+aiosqlite:///./policy_analytics.db"
                 logger.info("Switching to local SQLite fallback database: %s", fallback_url)
                 fallback_engine = create_async_engine(fallback_url, future=True)

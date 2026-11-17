@@ -41,7 +41,9 @@ class LLMProviderError(Exception):
             return f"The AI service ({self.provider}) timed out while processing the request. Please retry."
         if "auth" in msg or "key" in msg or "credential" in msg or "401" in msg or "403" in msg:
             return f"The AI provider ({self.provider}) authentication service is temporarily unavailable."
-        return f"AI provider ({self.provider}) was unable to complete the request. Please try again."
+        return (
+            f"AI provider ({self.provider}) was unable to complete the request. Please try again."
+        )
 
     def __str__(self) -> str:
         retry_flag = "retryable" if self.is_retryable else "non-retryable"
@@ -133,15 +135,30 @@ def format_user_friendly_error(exc: Exception | str | None) -> str:
 
     # Check for rate limit or quota
     lower = raw_text.lower()
-    if "rate limit" in lower or "429" in lower or "resource exhausted" in lower or "quota exceeded" in lower:
+    if (
+        "rate limit" in lower
+        or "429" in lower
+        or "resource exhausted" in lower
+        or "quota exceeded" in lower
+    ):
         return "The AI service is currently busy or rate-limited. Please retry your query in a few moments."
 
     # Check for timeout / network issues
-    if "timed out" in lower or "timeout" in lower or "connection refused" in lower or "504" in lower or "502" in lower:
+    if (
+        "timed out" in lower
+        or "timeout" in lower
+        or "connection refused" in lower
+        or "504" in lower
+        or "502" in lower
+    ):
         return "Service connection timed out while processing your request. Please try re-running."
 
     # Check for extraction failure
-    if "extraction failed" in lower or "no datasets retrieved" in lower or "no matching datasets" in lower:
+    if (
+        "extraction failed" in lower
+        or "no datasets retrieved" in lower
+        or "no matching datasets" in lower
+    ):
         # Extract title or dataset if present
         if "for '" in raw_text:
             try:
@@ -152,7 +169,13 @@ def format_user_friendly_error(exc: Exception | str | None) -> str:
         return "Data extraction could not retrieve official records for the requested parameters. You can re-run or use AI to resolve."
 
     # Check for authorization / API key
-    if "api key" in lower or "unauthorized" in lower or "401" in lower or "forbidden" in lower or "403" in lower:
+    if (
+        "api key" in lower
+        or "unauthorized" in lower
+        or "401" in lower
+        or "forbidden" in lower
+        or "403" in lower
+    ):
         return "AI service configuration or authentication is temporarily unavailable."
 
     # Remove stack trace if present
@@ -196,7 +219,10 @@ def is_resource_exhausted_error(exc: Exception | None) -> bool:
 
     # Check for Gemini provider specifically or Google quota messages
     is_gemini = provider == "gemini" or "gemini" in msg or "generativeai" in msg or "google" in msg
-    if is_gemini and any(k in msg for k in ("resource exhausted", "quota exceeded", "check quota", "429", "rate limit")):
+    if is_gemini and any(
+        k in msg
+        for k in ("resource exhausted", "quota exceeded", "check quota", "429", "rate limit")
+    ):
         return True
 
     exhaustion_keywords = (

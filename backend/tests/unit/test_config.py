@@ -1,7 +1,7 @@
 """Unit tests for configuration management (app.core.config.Settings)."""
 
-from pathlib import Path
 import warnings
+from pathlib import Path
 
 import pytest
 

@@ -4,8 +4,8 @@ import asyncio
 import json
 import os
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 
 # Add backend to path
 sys.path.insert(0, os.path.abspath("backend"))
@@ -28,19 +28,16 @@ def test_direct_http_converse(region: str, model_id: str, token: str, header_mod
         headers["X-Amz-Bearer"] = token
 
     payload = {
-        "messages": [
-            {
-                "role": "user",
-                "content": [{"text": "Hello, answer with single word pong"}]
-            }
-        ]
+        "messages": [{"role": "user", "content": [{"text": "Hello, answer with single word pong"}]}]
     }
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
     print(f"\n--- Testing Direct HTTP Converse [{header_mode}] ---")
     print(f"URL: {url}")
-    print(f"Headers: { {k: (mask_key(v) if 'auth' in k.lower() or 'key' in k.lower() or 'bearer' in k.lower() else v) for k, v in headers.items()} }")
+    print(
+        f"Headers: { {k: (mask_key(v) if 'auth' in k.lower() or 'key' in k.lower() or 'bearer' in k.lower() else v) for k, v in headers.items()} }"
+    )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             body = resp.read().decode("utf-8")
@@ -60,18 +57,17 @@ def test_direct_http_converse(region: str, model_id: str, token: str, header_mod
 
 def test_boto3_bearer(region: str, model_id: str, token: str):
     import boto3
-    from botocore.config import Config
     from botocore import UNSIGNED
+    from botocore.config import Config
 
-    print(f"\n--- Testing boto3 with AWS_BEARER_TOKEN_BEDROCK ---")
+    print("\n--- Testing boto3 with AWS_BEARER_TOKEN_BEDROCK ---")
     os.environ["AWS_BEARER_TOKEN_BEDROCK"] = token
-    
+
     # Try standard client first
     try:
         client = boto3.client("bedrock-runtime", region_name=region)
         resp = client.converse(
-            modelId=model_id,
-            messages=[{"role": "user", "content": [{"text": "Hello"}]}]
+            modelId=model_id, messages=[{"role": "user", "content": [{"text": "Hello"}]}]
         )
         print("Boto3 Converse Success!")
         print("Response:", resp)
@@ -80,19 +76,18 @@ def test_boto3_bearer(region: str, model_id: str, token: str):
         print(f"Standard boto3 client converse failed: {type(e).__name__}: {e}")
 
     # Try with UNSIGNED config + before-sign header injection
-    print(f"\n--- Testing boto3 with UNSIGNED + before-sign Authorization header ---")
+    print("\n--- Testing boto3 with UNSIGNED + before-sign Authorization header ---")
     try:
         session = boto3.Session(region_name=region)
         cfg = Config(signature_version=UNSIGNED, connect_timeout=10, read_timeout=10)
         client = session.client("bedrock-runtime", region_name=region, config=cfg)
 
-        def _inject(request, **kwargs):
+        def _inject(request, **_kwargs):
             request.headers["Authorization"] = f"Bearer {token}"
 
         client.meta.events.register("before-sign.bedrock-runtime.*", _inject)
         resp = client.converse(
-            modelId=model_id,
-            messages=[{"role": "user", "content": [{"text": "Hello"}]}]
+            modelId=model_id, messages=[{"role": "user", "content": [{"text": "Hello"}]}]
         )
         print("Boto3 Injected Converse Success!")
         print("Response:", resp)
@@ -104,10 +99,13 @@ def test_boto3_bearer(region: str, model_id: str, token: str):
 
 async def test_bedrock_provider():
     from app.llm.bedrock_provider import BedrockProvider
-    print(f"\n--- Testing app.llm.bedrock_provider.BedrockProvider ---")
+
+    print("\n--- Testing app.llm.bedrock_provider.BedrockProvider ---")
     try:
         provider = BedrockProvider()
-        print(f"Provider initialized: model={provider.model}, region={provider.region_name}, client={type(provider._client)}")
+        print(
+            f"Provider initialized: model={provider.model}, region={provider.region_name}, client={type(provider._client)}"
+        )
         health = await provider.health_check()
         print(f"Health check result: {health}")
         resp = await provider.complete([{"role": "user", "content": "Ping"}], max_tokens=10)
@@ -115,6 +113,7 @@ async def test_bedrock_provider():
         return True
     except Exception as e:
         import traceback
+
         print(f"BedrockProvider failed: {type(e).__name__}: {e}")
         traceback.print_exc()
         return False
@@ -123,9 +122,11 @@ async def test_bedrock_provider():
 def main():
     token = settings.BEDROCK_API_KEY or os.environ.get("BEDROCK_API_KEY")
     region = settings.AWS_REGION or os.environ.get("AWS_REGION", "ap-south-2")
-    model_id = settings.BEDROCK_MODEL_ID or os.environ.get("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
+    model_id = settings.BEDROCK_MODEL_ID or os.environ.get(
+        "BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0"
+    )
 
-    print(f"=== Amazon Bedrock Diagnostic ===")
+    print("=== Amazon Bedrock Diagnostic ===")
     print(f"Model ID: {model_id}")
     print(f"Region: {region}")
     print(f"API Key masked: {mask_key(token)}")
@@ -142,7 +143,7 @@ def main():
 
     # Also test us-east-1 to see if region is the only barrier
     if region != "us-east-1":
-        print(f"\nChecking region us-east-1 as cross-check:")
+        print("\nChecking region us-east-1 as cross-check:")
         test_direct_http_converse("us-east-1", "amazon.nova-lite-v1:0", token, header_mode="Bearer")
 
     # 2. boto3 bearer test

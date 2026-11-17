@@ -17,6 +17,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableBinding
+
 try:
     from langgraph.graph.state import CompiledStateGraph as CompiledGraph
 except ImportError:
@@ -24,25 +25,24 @@ except ImportError:
         from langgraph.graph.state import CompiledGraph  # type: ignore[attr-defined]
     except ImportError:
         from langgraph.graph.graph import CompiledGraph  # type: ignore[assignment]
+
+import pandas as pd
 from langgraph.prebuilt import create_react_agent
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.state import AgentName, AgentState, StepType
-from app.core.config import settings
-import re
-import pandas as pd
 from app.agents.tools.analysis_tools import (
+    _parse_dataframe,
     compute_statistics,
+    filter_dataframe_by_query,
     generate_chart,
     generate_insight,
-    filter_dataframe_by_query,
-    _parse_dataframe,
-    _detect_columns,
 )
-from app.services.visualization_service import VisualizationService
-from app.llm.router import get_llm_router
+from app.core.config import settings
 from app.crud.agent_log import create_agent_log
+from app.llm.router import get_llm_router
 from app.services.pubsub import format_agent_step_message, publish_step
+from app.services.visualization_service import VisualizationService
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,9 @@ def _resolve_citation_url(
                 return "https://tablebuilder.singstat.gov.sg"
         # Fix fake mock data.gov.sg hash URLs (e.g. d_e3b8a1c97a5b3a4a6b2c)
         if "data.gov.sg/datasets/d_" in existing_url:
-            q_topic = "ict workforce" if ("ict" in d_id.lower() or "ict" in t_lower) else "employment"
+            q_topic = (
+                "ict workforce" if ("ict" in d_id.lower() or "ict" in t_lower) else "employment"
+            )
             return f"https://data.gov.sg/datasets?query={q_topic}"
         # If already a valid, non-mock URL
         if not any(f in existing_url for f in ["d_e3b8a", "mock", "localhost", "127.0.0.1"]):
@@ -89,7 +91,12 @@ def _resolve_citation_url(
         return f"https://tablebuilder.singstat.gov.sg/table/TS/{d_id.upper()}"
 
     # Route based on theme/topic to official live pages
-    if "employment" in d_id.lower() or "employment" in t_lower or "labor" in d_id.lower() or "labor" in t_lower:
+    if (
+        "employment" in d_id.lower()
+        or "employment" in t_lower
+        or "labor" in d_id.lower()
+        or "labor" in t_lower
+    ):
         if "mom" in src:
             return "https://stats.mom.gov.sg/Pages/Employment-Summary-Table.aspx"
         return "https://www.singstat.gov.sg/find-data/search-by-theme/economy/labour-and-employment"
@@ -102,7 +109,9 @@ def _resolve_citation_url(
     if "gdp" in d_id.lower() or "gdp" in t_lower:
         return "https://www.singstat.gov.sg/find-data/search-by-theme/economy/national-accounts"
     if "cpi" in d_id.lower() or "price" in t_lower or "inflation" in t_lower:
-        return "https://www.singstat.gov.sg/find-data/search-by-theme/economy/prices-and-price-indices"
+        return (
+            "https://www.singstat.gov.sg/find-data/search-by-theme/economy/prices-and-price-indices"
+        )
     if "business" in d_id.lower() or "acra" in d_id.lower() or "business" in t_lower:
         return "https://data.gov.sg/datasets?query=business+entities"
     if "singstat" in src:
@@ -112,7 +121,18 @@ def _resolve_citation_url(
     return "https://www.singstat.gov.sg"
 
 
-_NON_ADDITIVE_HINTS = ("rate", "pct", "percent", "growth", "change", "ratio", "index", "median", "mean", "avg")
+_NON_ADDITIVE_HINTS = (
+    "rate",
+    "pct",
+    "percent",
+    "growth",
+    "change",
+    "ratio",
+    "index",
+    "median",
+    "mean",
+    "avg",
+)
 
 
 def _is_empty_chart(chart: Any) -> bool:
@@ -212,7 +232,9 @@ def _build_combined_stats(
     combined: dict[str, Any] = {
         "sources": per_source,
         "shared_periods": shared,
-        "aligned_table": {p: {s: round(i["values"][p], 4) for s, i in series.items()} for p in shared},
+        "aligned_table": {
+            p: {s: round(i["values"][p], 4) for s, i in series.items()} for p in shared
+        },
     }
 
     if len(shared) >= 2:
@@ -231,7 +253,13 @@ def _build_combined_stats(
             if combined["correlation"] is not None:
                 combined["interpretation"] = (
                     f"{labels[0]} and {labels[1]} move "
-                    + ("together" if combined["correlation"] > 0.5 else "in opposite directions" if combined["correlation"] < -0.5 else "largely independently")
+                    + (
+                        "together"
+                        if combined["correlation"] > 0.5
+                        else "in opposite directions"
+                        if combined["correlation"] < -0.5
+                        else "largely independently"
+                    )
                     + f" over {shared[0]}-{shared[-1]} (r={combined['correlation']})."
                 )
         growth = [s["change_pct"] for s in per_source if s["change_pct"] is not None]
@@ -248,7 +276,9 @@ def _build_combined_chart(combined: dict[str, Any] | None) -> dict[str, Any] | N
     if len(indexed) < 2:
         return None
     periods = combined["shared_periods"]
-    frame = pd.DataFrame({"period": periods, **{s: [v[p] for p in periods] for s, v in indexed.items()}})
+    frame = pd.DataFrame(
+        {"period": periods, **{s: [v[p] for p in periods] for s, v in indexed.items()}}
+    )
     chart = VisualizationService.multi_line_chart(
         df=frame,
         x_col="period",
@@ -358,7 +388,9 @@ def _build_chart(
         n_cat = target_df[cat_col].nunique() if cat_col else 0
         if cat_col and 2 <= n_cat <= 8 and not meta.get("sector_filtered"):
             piv = (
-                target_df.pivot_table(index=time_col, columns=cat_col, values=val_col, aggfunc="mean")
+                target_df.pivot_table(
+                    index=time_col, columns=cat_col, values=val_col, aggfunc="mean"
+                )
                 .sort_index()
                 .reset_index()
             )
@@ -823,7 +855,11 @@ async def analytics_node(
                         "Combined statistics across sources "
                         f"{', '.join(s['source'] for s in combined_stats['sources'])}; "
                         f"{len(combined_stats['shared_periods'])} shared period(s)."
-                        + (f" {combined_stats['interpretation']}" if combined_stats.get("interpretation") else "")
+                        + (
+                            f" {combined_stats['interpretation']}"
+                            if combined_stats.get("interpretation")
+                            else ""
+                        )
                     ),
                 },
                 active_db,
@@ -905,11 +941,17 @@ async def analytics_node(
         # -----------------------------------------------------------------
         query_text = state.get("query", "Singapore policy data analysis")
         router = get_llm_router()
-        active_provider = getattr(router, "primary_name", getattr(settings, "primary_llm_provider", "bedrock"))
+        active_provider = getattr(
+            router, "primary_name", getattr(settings, "primary_llm_provider", "bedrock")
+        )
         active_model = getattr(
             router.primary,
             "model",
-            getattr(settings, "bedrock_model_id" if active_provider == "bedrock" else "gemini_model", "apac.amazon.nova-lite-v1:0"),
+            getattr(
+                settings,
+                "bedrock_model_id" if active_provider == "bedrock" else "gemini_model",
+                "apac.amazon.nova-lite-v1:0",
+            ),
         )
         analytics_model_info = {
             "agent": "analytics",
@@ -989,7 +1031,8 @@ async def analytics_node(
             "charts": charts_list,
             "citations": citations_list,
             "models_used": [
-                state.get("coordinator_model") or {
+                state.get("coordinator_model")
+                or {
                     "agent": "coordinator",
                     "provider": active_provider,
                     "model": str(active_model),

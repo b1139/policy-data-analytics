@@ -290,7 +290,11 @@ async def _execute_analysis(
 
             if session is not None and analysis_record is not None:
                 existing_meta = analysis_record.metadata_ or {}
-                updated_meta = {**existing_meta, "failed_data": failed_data_info, "technical_error": raw_err}
+                updated_meta = {
+                    **existing_meta,
+                    "failed_data": failed_data_info,
+                    "technical_error": raw_err,
+                }
                 await update_analysis_status(
                     db=session,
                     id=analysis_uuid,
@@ -360,18 +364,52 @@ async def _execute_analysis(
         if not models_used:
             try:
                 r = get_llm_router()
-                p_name = getattr(r, "primary_name", getattr(settings, "primary_llm_provider", "bedrock"))
-                m_name = getattr(r.primary, "model", getattr(settings, "bedrock_model_id" if p_name == "bedrock" else "gemini_model", "apac.amazon.nova-lite-v1:0"))
+                p_name = getattr(
+                    r, "primary_name", getattr(settings, "primary_llm_provider", "bedrock")
+                )
+                m_name = getattr(
+                    r.primary,
+                    "model",
+                    getattr(
+                        settings,
+                        "bedrock_model_id" if p_name == "bedrock" else "gemini_model",
+                        "apac.amazon.nova-lite-v1:0",
+                    ),
+                )
                 models_used = [
-                    {"agent": "coordinator", "provider": p_name, "model": str(m_name), "role": "Query Decomposition & Planning"},
-                    {"agent": "analytics", "provider": p_name, "model": str(m_name), "role": "Grounded Statistical Synthesis"},
+                    {
+                        "agent": "coordinator",
+                        "provider": p_name,
+                        "model": str(m_name),
+                        "role": "Query Decomposition & Planning",
+                    },
+                    {
+                        "agent": "analytics",
+                        "provider": p_name,
+                        "model": str(m_name),
+                        "role": "Grounded Statistical Synthesis",
+                    },
                 ]
             except Exception:
                 fallback_p = getattr(settings, "primary_llm_provider", "bedrock")
-                fallback_m = getattr(settings, "bedrock_model_id" if fallback_p == "bedrock" else "gemini_model", "apac.amazon.nova-lite-v1:0")
+                fallback_m = getattr(
+                    settings,
+                    "bedrock_model_id" if fallback_p == "bedrock" else "gemini_model",
+                    "apac.amazon.nova-lite-v1:0",
+                )
                 models_used = [
-                    {"agent": "coordinator", "provider": fallback_p, "model": str(fallback_m), "role": "Query Decomposition & Planning"},
-                    {"agent": "analytics", "provider": fallback_p, "model": str(fallback_m), "role": "Grounded Statistical Synthesis"},
+                    {
+                        "agent": "coordinator",
+                        "provider": fallback_p,
+                        "model": str(fallback_m),
+                        "role": "Query Decomposition & Planning",
+                    },
+                    {
+                        "agent": "analytics",
+                        "provider": fallback_p,
+                        "model": str(fallback_m),
+                        "role": "Grounded Statistical Synthesis",
+                    },
                 ]
 
         stats_summary = (
@@ -398,7 +436,8 @@ async def _execute_analysis(
             detector = HallucinationDetector()
             hallucination_report = detector.run_all_checks(
                 insights=insights_str,
-                datasets=citations or (final_state.get("selected_datasets") or final_state.get("raw_datasets") or []),
+                datasets=citations
+                or (final_state.get("selected_datasets") or final_state.get("raw_datasets") or []),
                 stats=stats_summary,
             )
         except Exception as h_err:
@@ -458,7 +497,10 @@ async def _execute_analysis(
             # Ensure extracted datasets are persisted and associated with analysis
             try:
                 from app.crud.dataset import get_or_create_dataset, link_dataset_to_analysis
-                extracted = final_state.get("selected_datasets") or final_state.get("raw_datasets") or []
+
+                extracted = (
+                    final_state.get("selected_datasets") or final_state.get("raw_datasets") or []
+                )
                 for ds in extracted:
                     src = ds.get("source", "mock_internal")
                     ds_id = str(ds.get("dataset_id") or ds.get("id") or "mock_dataset")
@@ -523,7 +565,11 @@ async def _execute_analysis(
         if session is not None and analysis_record is not None:
             with contextlib.suppress(Exception):
                 existing_meta = analysis_record.metadata_ or {}
-                updated_meta = {**existing_meta, "failed_data": failed_data_info, "technical_error": str(exc)}
+                updated_meta = {
+                    **existing_meta,
+                    "failed_data": failed_data_info,
+                    "technical_error": str(exc),
+                }
                 await update_analysis_status(
                     db=session,
                     id=analysis_uuid,

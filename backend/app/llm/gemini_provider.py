@@ -294,7 +294,9 @@ class GeminiProvider(AbstractLLMProvider):
         if getattr(self, "_resource_exhausted", False):
             elapsed = time.time() - getattr(self, "_resource_exhausted_at", 0.0)
             if elapsed < 60.0:
-                logger.debug("Gemini health check skipped (recently resource exhausted: %.1fs ago).", elapsed)
+                logger.debug(
+                    "Gemini health check skipped (recently resource exhausted: %.1fs ago).", elapsed
+                )
                 return False
             else:
                 self._resource_exhausted = False

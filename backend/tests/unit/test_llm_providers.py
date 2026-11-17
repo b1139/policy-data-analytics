@@ -551,3 +551,49 @@ class TestAnthropicProvider:
 
         assert exc_info.value.provider == "anthropic"
         assert exc_info.value.is_retryable is True
+
+    @pytest.mark.asyncio
+    async def test_openai_and_anthropic_missing_keys_and_content_parsing(self) -> None:
+        """Verify missing key errors, content list parsing, and health checks."""
+        # 1. OpenAI missing key
+        openai_no_key = OpenAIProvider(api_key=None, client=None)
+        with pytest.raises(LLMProviderError, match="OpenAI API key is not configured"):
+            await openai_no_key.complete([{"role": "user", "content": "test"}])
+
+        # 2. OpenAI content parsing with list of parts
+        mock_client = MagicMock()
+        mock_bound = MagicMock()
+        mock_resp = MagicMock()
+        item_obj = MagicMock()
+        item_obj.text = " world"
+        mock_resp.content = ["Hello", {"text": " beautiful"}, item_obj]
+        mock_resp.usage_metadata = {"input_tokens": 5, "output_tokens": 5, "total_tokens": 10}
+        mock_bound.ainvoke = AsyncMock(return_value=mock_resp)
+        mock_client.bind.return_value = mock_bound
+
+        openai_provider = OpenAIProvider(api_key="sk-fake", client=mock_client)
+        resp = await openai_provider.complete([{"role": "user", "content": "greet"}])
+        assert resp.content == "Hello beautiful world"
+
+        # 3. OpenAI health check success and failure
+        assert await openai_provider.health_check() is True
+        mock_bound.ainvoke = AsyncMock(side_effect=RuntimeError("OpenAI API unreachable"))
+        assert await openai_provider.health_check() is False
+
+        # 4. Anthropic missing key
+        anthropic_no_key = AnthropicProvider(api_key=None, client=None)
+        with pytest.raises(LLMProviderError, match="Anthropic API key is not configured"):
+            await anthropic_no_key.complete([{"role": "user", "content": "test"}])
+
+        # 5. Anthropic content parsing with list of parts
+        mock_ant_client = MagicMock()
+        mock_ant_bound = MagicMock()
+        mock_ant_resp = MagicMock()
+        mock_ant_resp.content = [{"text": "Anthropic"}, " list", item_obj]
+        mock_ant_resp.usage_metadata = {"input_tokens": 5, "output_tokens": 5, "total_tokens": 10}
+        mock_ant_bound.ainvoke = AsyncMock(return_value=mock_ant_resp)
+        mock_ant_client.bind.return_value = mock_ant_bound
+
+        anthropic_provider = AnthropicProvider(api_key="sk-ant-fake", client=mock_ant_client)
+        ant_resp = await anthropic_provider.complete([{"role": "user", "content": "test"}])
+        assert ant_resp.content == "Anthropic list world"

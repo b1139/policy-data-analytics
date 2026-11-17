@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import re
 import io
 import json
 import logging
+import re
 from typing import Any
 
 import pandas as pd
@@ -205,7 +205,15 @@ def filter_dataframe_by_query(
     if preferred_sector and preferred_sector in cols:
         sector_col = preferred_sector
     else:
-        for candidate in ["sector", "industry", "category", "economic_sector", "occupation", "group", "type"]:
+        for candidate in [
+            "sector",
+            "industry",
+            "category",
+            "economic_sector",
+            "occupation",
+            "group",
+            "type",
+        ]:
             if candidate in cols_lower and cols_lower[candidate] != time_col:
                 sector_col = cols_lower[candidate]
                 break
@@ -216,24 +224,44 @@ def filter_dataframe_by_query(
         val_col = preferred_val
     else:
         is_growth_query = any(
-            k in q_lower for k in ("growth", "change", "pct", "percent", "percentage", "yoy", "rate")
+            k in q_lower
+            for k in ("growth", "change", "pct", "percent", "percentage", "yoy", "rate")
         )
         is_headcount_query = any(
-            k in q_lower for k in ("headcount", "count", "level", "workers", "number", "total", "workforce")
+            k in q_lower
+            for k in ("headcount", "count", "level", "workers", "number", "total", "workforce")
         )
         is_wage_query = any(
             k in q_lower for k in ("wage", "wages", "salary", "income", "earning", "compensation")
         )
 
         growth_candidates = [
-            "yoy_change_pct", "yoy_growth", "growth_rate", "pct_growth", "pct_change",
-            "yoy_change", "growth", "unemployment_rate", "rate"
+            "yoy_change_pct",
+            "yoy_growth",
+            "growth_rate",
+            "pct_growth",
+            "pct_change",
+            "yoy_change",
+            "growth",
+            "unemployment_rate",
+            "rate",
         ]
         headcount_candidates = [
-            "employment_count", "headcount", "total_workforce", "ict_headcount", "count", "value", "val"
+            "employment_count",
+            "headcount",
+            "total_workforce",
+            "ict_headcount",
+            "count",
+            "value",
+            "val",
         ]
         wage_candidates = [
-            "median_gross_wage", "gross_wage", "median_wage", "median_gross_monthly_wage", "wages", "income"
+            "median_gross_wage",
+            "gross_wage",
+            "median_wage",
+            "median_gross_monthly_wage",
+            "wages",
+            "income",
         ]
 
         priority_candidates = []
@@ -244,11 +272,24 @@ def filter_dataframe_by_query(
         if is_wage_query:
             priority_candidates.extend(wage_candidates)
 
-        priority_candidates.extend([
-            "value", "val", "metric", "amount", "headcount", "employment",
-            "employment_count", "median_wage", "gross_wage", "unemployment_rate",
-            "gdp", "gdp_growth", "nominal_gdp", "real_gdp"
-        ])
+        priority_candidates.extend(
+            [
+                "value",
+                "val",
+                "metric",
+                "amount",
+                "headcount",
+                "employment",
+                "employment_count",
+                "median_wage",
+                "gross_wage",
+                "unemployment_rate",
+                "gdp",
+                "gdp_growth",
+                "nominal_gdp",
+                "real_gdp",
+            ]
+        )
 
         for cand in priority_candidates:
             if cand in cols_lower and cols_lower[cand] not in [time_col, sector_col]:
@@ -275,7 +316,9 @@ def filter_dataframe_by_query(
         if y not in unique_years:
             unique_years.append(y)
 
-    range_match = re.search(r"\b(?:between|from)\s+(19\d\d|20\d\d)\s+(?:and|to)\s+(19\d\d|20\d\d)\b", q_lower)
+    range_match = re.search(
+        r"\b(?:between|from)\s+(19\d\d|20\d\d)\s+(?:and|to)\s+(19\d\d|20\d\d)\b", q_lower
+    )
     is_range = bool(range_match)
     range_years = (int(range_match.group(1)), int(range_match.group(2))) if range_match else None
 

@@ -1,11 +1,11 @@
 .PHONY: help start start-local stop status test test-backend test-frontend migrate lint lint-backend lint-frontend logs shell shell-backend install install-backend install-frontend
 
 VENV ?= ./venv/bin
-PYTHON := $(shell if [ -x "$(VENV)/python" ]; then echo "$(VENV)/python"; elif command -v python3 >/dev/null 2>&1; then echo "python3"; else echo "python"; fi)
-UVICORN := $(shell if [ -x "$(VENV)/uvicorn" ]; then echo "$(VENV)/uvicorn"; elif command -v uvicorn >/dev/null 2>&1; then echo "uvicorn"; else echo "$(PYTHON) -m uvicorn"; fi)
-ALEMBIC := $(shell if [ -x "$(VENV)/alembic" ]; then echo "$(VENV)/alembic"; elif command -v alembic >/dev/null 2>&1; then echo "alembic"; else echo "$(PYTHON) -m alembic"; fi)
-PYTEST := $(shell if [ -x "$(VENV)/pytest" ]; then echo "$(VENV)/pytest"; elif command -v pytest >/dev/null 2>&1; then echo "pytest"; else echo "$(PYTHON) -m pytest"; fi)
-RUFF := $(shell if [ -x "$(VENV)/ruff" ]; then echo "$(VENV)/ruff"; elif command -v ruff >/dev/null 2>&1; then echo "ruff"; else echo "$(PYTHON) -m ruff"; fi)
+PYTHON := $(shell if [ -x "$(VENV)/python" ] && $(VENV)/python --version >/dev/null 2>&1; then echo "$(VENV)/python"; elif command -v python3 >/dev/null 2>&1; then echo "python3"; else echo "python"; fi)
+UVICORN := $(shell if [ -x "$(VENV)/uvicorn" ] && $(PYTHON) -m uvicorn --version >/dev/null 2>&1; then echo "$(PYTHON) -m uvicorn"; elif command -v uvicorn >/dev/null 2>&1; then echo "uvicorn"; else echo "$(PYTHON) -m uvicorn"; fi)
+ALEMBIC := $(shell if [ -x "$(VENV)/alembic" ] && $(PYTHON) -m alembic --version >/dev/null 2>&1; then echo "$(PYTHON) -m alembic"; elif command -v alembic >/dev/null 2>&1; then echo "alembic"; else echo "$(PYTHON) -m alembic"; fi)
+PYTEST := $(shell if $(PYTHON) -m pytest --version >/dev/null 2>&1; then echo "$(PYTHON) -m pytest"; elif command -v pytest >/dev/null 2>&1; then echo "pytest"; else echo "pytest"; fi)
+RUFF := $(shell if [ -x "$(VENV)/ruff" ] && $(VENV)/ruff --version >/dev/null 2>&1; then echo "$(VENV)/ruff"; elif command -v ruff >/dev/null 2>&1; then echo "ruff"; elif $(PYTHON) -m ruff --version >/dev/null 2>&1; then echo "$(PYTHON) -m ruff"; else echo "ruff"; fi)
 
 help:
 	@echo "Agentic Policy Data Analytics Platform - Command Center"
@@ -112,9 +112,15 @@ migrate:
 	fi
 
 test-backend:
-	@if [ -x "$(VENV)/pytest" ]; then \
-		echo "Running backend tests using local venv ($(VENV)/pytest)..."; \
-		PYTHONPATH=backend:$$PYTHONPATH $(VENV)/pytest backend/tests; \
+	@if [ -x "$(VENV)/python" ] && $(VENV)/python -m pytest --version >/dev/null 2>&1; then \
+		echo "Running backend tests using local venv ($(VENV)/python -m pytest)..."; \
+		PYTHONPATH=backend:$$PYTHONPATH $(VENV)/python -m pytest backend/tests; \
+	elif $(PYTHON) -m pytest --version >/dev/null 2>&1; then \
+		echo "Running backend tests using $(PYTHON) -m pytest..."; \
+		PYTHONPATH=backend:$$PYTHONPATH $(PYTHON) -m pytest backend/tests; \
+	elif command -v pytest >/dev/null 2>&1; then \
+		echo "Running backend tests using system pytest..."; \
+		PYTHONPATH=backend:$$PYTHONPATH pytest backend/tests; \
 	elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
 		if docker compose ps --services --filter "status=running" 2>/dev/null | grep -q "^backend$$"; then \
 			echo "Running backend tests inside running Docker container (backend)..."; \
@@ -123,12 +129,9 @@ test-backend:
 			echo "Running backend tests via Docker Compose (backend container)..."; \
 			docker compose run --rm backend pytest tests; \
 		fi; \
-	elif command -v pytest >/dev/null 2>&1; then \
-		echo "Running backend tests using system pytest..."; \
-		PYTHONPATH=backend:$$PYTHONPATH pytest backend/tests; \
-	elif $(PYTHON) -m pytest --version >/dev/null 2>&1; then \
-		echo "Running backend tests using $(PYTHON) -m pytest..."; \
-		PYTHONPATH=backend:$$PYTHONPATH $(PYTHON) -m pytest backend/tests; \
+	elif [ -x "$(VENV)/pytest" ]; then \
+		echo "Running backend tests using $(VENV)/pytest..."; \
+		PYTHONPATH=backend:$$PYTHONPATH $(VENV)/pytest backend/tests; \
 	else \
 		echo "Error: pytest not found in $(VENV), system PATH, or Docker."; \
 		echo "To resolve this, either:"; \

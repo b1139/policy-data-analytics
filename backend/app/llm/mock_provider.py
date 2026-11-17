@@ -2,8 +2,8 @@
 
 import asyncio
 import json
-import re
 import logging
+import re
 import time
 from typing import Any
 
@@ -436,10 +436,7 @@ class MockLLMProvider(AbstractLLMProvider):
             )
         ):
             return MOCK_KNOWLEDGE_BASE["industry_gdp"]
-        if any(
-            kw in text
-            for kw in ("last 6 years", "6 years gdp", "gdp trajectory")
-        ):
+        if any(kw in text for kw in ("last 6 years", "6 years gdp", "gdp trajectory")):
             return MOCK_KNOWLEDGE_BASE["gdp_6yr"]
         if any(kw in text for kw in ("gdp", "economic growth", "gross domestic product")):
             return MOCK_KNOWLEDGE_BASE["gdp"]

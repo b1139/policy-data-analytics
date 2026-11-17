@@ -420,7 +420,9 @@ def test_enriched_health_endpoint_response_with_llm_status():
 
 
 @pytest.mark.asyncio
-async def test_fallback_persists_for_remainder_of_query_and_resets_on_next_query(test_messages, caplog):
+async def test_fallback_persists_for_remainder_of_query_and_resets_on_next_query(
+    test_messages,
+):
     """Test that once fallback occurs during a query, subsequent calls in that query bypass primary,
 
     and primary is only retried on the next user query.
@@ -433,9 +435,15 @@ async def test_fallback_persists_for_remainder_of_query_and_resets_on_next_query
         provider="gemini",
         is_retryable=True,
     )
-    fallback_resp_1 = LLMResponse(content="Step 1 fallback result", model="bedrock-1", provider="bedrock")
-    fallback_resp_2 = LLMResponse(content="Step 2 fallback result", model="bedrock-1", provider="bedrock")
-    primary_resp_q2 = LLMResponse(content="Query 2 primary result", model="gemini-1", provider="gemini")
+    fallback_resp_1 = LLMResponse(
+        content="Step 1 fallback result", model="bedrock-1", provider="bedrock"
+    )
+    fallback_resp_2 = LLMResponse(
+        content="Step 2 fallback result", model="bedrock-1", provider="bedrock"
+    )
+    primary_resp_q2 = LLMResponse(
+        content="Query 2 primary result", model="gemini-1", provider="gemini"
+    )
 
     # Primary will fail for query 1, but succeed for query 2
     primary.complete_mock.side_effect = [
@@ -495,7 +503,9 @@ def test_user_friendly_error_formatting():
 
     # 1. AllProvidersFailedError
     all_failed = AllProvidersFailedError(
-        primary_error=ValueError("Raw GoogleAPIError: 400 Bad Request\nTraceback (most recent call last):\nFile 'foo.py'"),
+        primary_error=ValueError(
+            "Raw GoogleAPIError: 400 Bad Request\nTraceback (most recent call last):\nFile 'foo.py'"
+        ),
         fallback_error=RuntimeError("Bedrock connection reset"),
     )
     friendly = format_user_friendly_error(all_failed)
@@ -504,7 +514,9 @@ def test_user_friendly_error_formatting():
     assert "AI service temporarily unavailable" in friendly
 
     # 2. Rate limit error
-    rate_err = LLMProviderError("429 Too Many Requests: Quota exceeded", provider="gemini", is_retryable=True)
+    rate_err = LLMProviderError(
+        "429 Too Many Requests: Quota exceeded", provider="gemini", is_retryable=True
+    )
     friendly_rate = format_user_friendly_error(rate_err)
     assert "Traceback" not in friendly_rate
     assert "busy or rate-limited" in friendly_rate or "high demand" in friendly_rate
@@ -531,8 +543,12 @@ async def test_gemini_resource_exhaustion_stops_without_retry(test_messages):
     fallback = DummyProvider("gemini")
 
     bedrock_fail = LLMProviderError("AWS Bedrock timeout", provider="bedrock", is_retryable=False)
-    gemini_exhausted = LLMProviderError("ResourceExhausted: 429 Quota exceeded", provider="gemini", is_retryable=False)
-    bedrock_ok = LLMResponse(content="Bedrock success on new request", model="bedrock-1", provider="bedrock")
+    gemini_exhausted = LLMProviderError(
+        "ResourceExhausted: 429 Quota exceeded", provider="gemini", is_retryable=False
+    )
+    bedrock_ok = LLMResponse(
+        content="Bedrock success on new request", model="bedrock-1", provider="bedrock"
+    )
 
     # Query 1: Bedrock fails, then Gemini fails with resource exhaustion
     # For query 1 calls, Bedrock continues to fail; for query 2, Bedrock succeeds

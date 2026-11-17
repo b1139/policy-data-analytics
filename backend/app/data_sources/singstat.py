@@ -40,9 +40,7 @@ class SingStatDataSource(AbstractDataSource):
     BASE_URL: str = "https://tablebuilder.singstat.gov.sg/api/table"
     SEARCH_ENDPOINT: str = "https://tablebuilder.singstat.gov.sg/api/table/resourceid"
     TABLE_DATA_ENDPOINT: str = "https://tablebuilder.singstat.gov.sg/api/table/tabledata"
-    HEALTH_CHECK_URL: str = (
-        "https://tablebuilder.singstat.gov.sg/api/table/resourceid?keyword=employment&searchOption=all"
-    )
+    HEALTH_CHECK_URL: str = "https://tablebuilder.singstat.gov.sg/api/table/resourceid?keyword=employment&searchOption=all"
 
     # Timeouts
     REQUEST_TIMEOUT: float = 30.0
@@ -171,14 +169,24 @@ class SingStatDataSource(AbstractDataSource):
             if results:
                 return results
 
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
-                logger.info("SingStat live search yielded no records for '%s'; using mock fallback", kw)
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
+                logger.info(
+                    "SingStat live search yielded no records for '%s'; using mock fallback", kw
+                )
                 return await self._mock_source.search(keywords, **filters)
-            logger.warning("SingStat live search yielded no records for '%s' (mock fallback disabled)", kw)
+            logger.warning(
+                "SingStat live search yielded no records for '%s' (mock fallback disabled)", kw
+            )
             return []
 
         except Exception as exc:
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
                 logger.warning(
                     "SingStat search request failed for keywords '%s' (%s); falling back to mock",
                     kw,
@@ -205,7 +213,9 @@ class SingStatDataSource(AbstractDataSource):
             return False
         return bool(getattr(settings, "SINGSTAT_MCP_ENABLED", True))
 
-    async def _mcp_call(self, calls: list[tuple[str, dict[str, Any]]], retries: int = 2) -> list[Any]:
+    async def _mcp_call(
+        self, calls: list[tuple[str, dict[str, Any]]], retries: int = 2
+    ) -> list[Any]:
         """_mcp_call_once with brief exponential backoff for transient server errors."""
         for attempt in range(retries + 1):
             try:
@@ -227,15 +237,17 @@ class SingStatDataSource(AbstractDataSource):
         mcp_url = getattr(settings, "SINGSTAT_MCP_URL", None)
         if not mcp_url or "singstat.gov.sg/data-tools-services" in mcp_url:
             mcp_url = self.MCP_URL  # guard against the docs-page URL being used as endpoint
-        async with streamable_http_client(mcp_url) as streams:
-            async with ClientSession(streams[0], streams[1]) as session:
-                await session.initialize()
-                for name, args in calls:
-                    res = await asyncio.wait_for(
-                        session.call_tool(name, args), timeout=self.REQUEST_TIMEOUT
-                    )
-                    text = res.content[0].text if res.content else ""
-                    out.append(json.loads(text) if text else {})
+        async with (
+            streamable_http_client(mcp_url) as streams,
+            ClientSession(streams[0], streams[1]) as session,
+        ):
+            await session.initialize()
+            for name, args in calls:
+                res = await asyncio.wait_for(
+                    session.call_tool(name, args), timeout=self.REQUEST_TIMEOUT
+                )
+                text = res.content[0].text if res.content else ""
+                out.append(json.loads(text) if text else {})
         return out
 
     async def _mcp_search(self, query: str) -> list[dict[str, Any]]:
@@ -336,7 +348,9 @@ class SingStatDataSource(AbstractDataSource):
         series_no = series_no or kwargs.get("seriesNoORrowNo")
         mcp_time = self._to_mcp_time_filter(time_filter)
         try:
-            meta_payload, = await self._mcp_call([("get_table_metadata", {"resource_id": dataset_id})])
+            (meta_payload,) = await self._mcp_call(
+                [("get_table_metadata", {"resource_id": dataset_id})]
+            )
             records = ((meta_payload or {}).get("data") or {}).get("records") or {}
             rows = records.get("row") or []
             total = int(records.get("total") or 0)
@@ -353,7 +367,10 @@ class SingStatDataSource(AbstractDataSource):
                     args["timeFilter"] = [f"{int(end_year) - 4}-01", f"{end_year}-12"]
             logger.info(
                 "SingStat MCP get_table_data %s (rows=%d total=%d args=%s)",
-                dataset_id, len(rows), total, args,
+                dataset_id,
+                len(rows),
+                total,
+                args,
             )
 
             (data_payload,) = await self._mcp_call([("get_table_data", args)])
@@ -402,7 +419,9 @@ class SingStatDataSource(AbstractDataSource):
 
         return []
 
-    async def fetch(self, dataset_id: str, time_filter: str | None = None, **kwargs: Any) -> pd.DataFrame:
+    async def fetch(
+        self, dataset_id: str, time_filter: str | None = None, **kwargs: Any
+    ) -> pd.DataFrame:
         """Fetch and return a normalized DataFrame from SingStat Table Builder.
 
         Args:
@@ -460,7 +479,10 @@ class SingStatDataSource(AbstractDataSource):
             if raw_df is not None and not raw_df.empty:
                 return self._finalize_dataframe(raw_df, dataset_id=clean_id, url=url)
 
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
                 logger.warning(
                     "SingStat response for '%s' could not be parsed into non-empty DataFrame; falling back to mock",
                     clean_id,
@@ -474,7 +496,10 @@ class SingStatDataSource(AbstractDataSource):
             return pd.DataFrame()
 
         except Exception as exc:
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
                 logger.warning(
                     "SingStat fetch failed for '%s' (%s); falling back to mock data",
                     clean_id,
@@ -541,7 +566,11 @@ class SingStatDataSource(AbstractDataSource):
                                 raw_val = c.get("value") if "value" in c else c.get("Value")
                                 if raw_val not in (None, "na", "NA", "-", "n.a."):
                                     # Extract 4-digit year if present for easier temporal grouping
-                                    year_val = c_key[:4] if len(c_key) >= 4 and c_key[:4].isdigit() else c_key
+                                    year_val = (
+                                        c_key[:4]
+                                        if len(c_key) >= 4 and c_key[:4].isdigit()
+                                        else c_key
+                                    )
                                     try:
                                         num_val: Any = float(str(raw_val).replace(",", ""))
                                     except (ValueError, TypeError):
@@ -575,7 +604,9 @@ class SingStatDataSource(AbstractDataSource):
                         elif isinstance(cols, dict):
                             for k, v in cols.items():
                                 k_str = str(k).strip()
-                                year_val = k_str[:4] if len(k_str) >= 4 and k_str[:4].isdigit() else k_str
+                                year_val = (
+                                    k_str[:4] if len(k_str) >= 4 and k_str[:4].isdigit() else k_str
+                                )
                                 try:
                                     num_val = float(str(v).replace(",", ""))
                                 except (ValueError, TypeError):
@@ -665,8 +696,11 @@ class SingStatDataSource(AbstractDataSource):
                 filter_years = [y.strip() for y in str(time_filter).split(",") if y.strip()]
                 for col in ("year", "period", "period_start"):
                     if col in df.columns:
-                        mask = df[col].astype(str).str.strip().apply(
-                            lambda val: any(fy in val for fy in filter_years)
+                        mask = (
+                            df[col]
+                            .astype(str)
+                            .str.strip()
+                            .apply(lambda val: any(fy in val for fy in filter_years))
                         )
                         if mask.any():
                             df = df[mask].copy()

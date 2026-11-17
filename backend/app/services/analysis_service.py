@@ -408,8 +408,12 @@ class StatisticsEngine:
         s1_str = str(series_1_label).strip()
         s2_str = str(series_2_label).strip()
 
-        df_s1 = clean[clean[time_col].str.contains(rf"\b{re.escape(s1_str)}\b", regex=True, na=False)]
-        df_s2 = clean[clean[time_col].str.contains(rf"\b{re.escape(s2_str)}\b", regex=True, na=False)]
+        df_s1 = clean[
+            clean[time_col].str.contains(rf"\b{re.escape(s1_str)}\b", regex=True, na=False)
+        ]
+        df_s2 = clean[
+            clean[time_col].str.contains(rf"\b{re.escape(s2_str)}\b", regex=True, na=False)
+        ]
 
         if df_s1.empty or df_s2.empty:
             return {
@@ -460,9 +464,7 @@ class StatisticsEngine:
                             v1 = float(row[col_1[0]]) if pd.notna(row[col_1[0]]) else None
                             v2 = float(row[col_2[0]]) if pd.notna(row[col_2[0]]) else None
                             d_cat = (
-                                round(v2 - v1, 4)
-                                if (v1 is not None and v2 is not None)
-                                else None
+                                round(v2 - v1, 4) if (v1 is not None and v2 is not None) else None
                             )
                             cat_rows.append(
                                 {
@@ -589,7 +591,7 @@ class InsightGenerator:
         # Format prompt payload
         sources_text = self._format_sources_for_prompt(sources_list)
         stats_dict = stats_obj.model_dump() if hasattr(stats_obj, "model_dump") else dict(stats_obj)
-        stats_json = json.dumps(stats_dict, default=str, separators=(',', ':'))
+        stats_json = json.dumps(stats_dict, default=str, separators=(",", ":"))
 
         user_prompt = (
             f"Query: {query.strip()}\n"
@@ -692,7 +694,9 @@ class InsightGenerator:
         findings: list[str] = []
         if stats.trend and stats.trend.overall_trend and stats.trend.error is None:
             direction = str(stats.trend.overall_trend)
-            verb = {"increasing": "rose", "decreasing": "fell"}.get(direction, "stayed broadly stable")
+            verb = {"increasing": "rose", "decreasing": "fell"}.get(
+                direction, "stayed broadly stable"
+            )
             findings.append(f"**Trend:** the indicator {verb} over {date_range}.")
         if stats.summary and stats.summary.error is None and stats.summary.count > 0:
             sm = stats.summary
@@ -717,7 +721,7 @@ class InsightGenerator:
         if not findings:
             findings.append("**Data:** limited statistics were available for this query.")
 
-        answer = f"Summary for \"{topic}\" based on official statistics from {sources_str}."
+        answer = f'Summary for "{topic}" based on official statistics from {sources_str}.'
         lines = [
             f"**Answer:** {answer}",
             "",
@@ -1092,7 +1096,10 @@ class AnalysisService:
                 try:
                     res_plan = json.loads(resolution_resp.content)
                 except Exception:
-                    res_plan = {"resolved_keywords": "singapore policy", "suggested_source": "mock_internal"}
+                    res_plan = {
+                        "resolved_keywords": "singapore policy",
+                        "suggested_source": "mock_internal",
+                    }
             except Exception as llm_err:
                 logger.warning(
                     "LLM data resolution prompt encountered error: %s. Using default resolution plan.",

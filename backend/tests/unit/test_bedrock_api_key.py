@@ -1,6 +1,7 @@
 """Unit tests specifically verifying Bedrock API Key (ABSK bearer token) authentication and error handling."""
 
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from botocore import UNSIGNED
 from langchain_core.messages import AIMessage
@@ -70,7 +71,10 @@ class TestBedrockApiKey:
                 region_name="ap-south-2",
                 bedrock_api_key="ABSK_test_token",
             )
-        assert any("opt-in AWS region that may not support Bedrock API Key" in record.message for record in caplog.records)
+        assert any(
+            "opt-in AWS region that may not support Bedrock API Key" in record.message
+            for record in caplog.records
+        )
 
     @pytest.mark.asyncio
     async def test_error_002_translation(self) -> None:
@@ -123,7 +127,10 @@ class TestBedrockApiKey:
 
         assert exc_info.value.provider == "bedrock"
         assert exc_info.value.is_retryable is False
-        assert "Bedrock API keys (bearer tokens) are not supported in opt-in region 'ap-south-2'" in str(exc_info.value)
+        assert (
+            "Bedrock API keys (bearer tokens) are not supported in opt-in region 'ap-south-2'"
+            in str(exc_info.value)
+        )
         assert "us-east-1" in str(exc_info.value)
 
     @pytest.mark.asyncio

@@ -346,6 +346,7 @@ async def test_dataset_crud_and_analysis_linking(async_db: AsyncSession):
 def test_alembic_upgrade_head_sql():
     """Verify that Alembic migration environment successfully renders upgrade SQL."""
     from pathlib import Path
+
     ini_path = "alembic.ini" if Path("alembic.ini").exists() else "backend/alembic.ini"
     alembic_cfg = Config(ini_path)
     # Verify migration config exists and runs upgrade head in offline mode

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import os
 import threading
 import time
@@ -25,7 +24,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool, StaticPool
+from sqlalchemy.pool import NullPool
 
 from app.agents.graph import run_analysis
 from app.core.config import settings
@@ -34,11 +33,9 @@ from app.crud.analysis import create_analysis
 from app.data_sources import MockInternalDataSource, data_source_registry
 from app.main import app
 from app.schemas.analysis import AnalysisStatus
-from app.schemas.websocket import WSMessageType
 from app.services.pubsub import (
     format_agent_step_message,
     format_analysis_done_message,
-    format_status_change_message,
     get_channel_name,
     in_memory_broker,
     publish_step,
@@ -196,9 +193,7 @@ def test_10_concurrent_websockets_receive_all_messages() -> None:
         # Step 4: Extraction observe
         await publish_step(
             analysis_id,
-            format_agent_step_message(
-                analysis_id, "extraction", "OBSERVE", {"tables_found": 3}, 4
-            ),
+            format_agent_step_message(analysis_id, "extraction", "OBSERVE", {"tables_found": 3}, 4),
         )
         # Step 5: Analytics calculate
         await publish_step(
@@ -235,7 +230,9 @@ def test_10_concurrent_websockets_receive_all_messages() -> None:
     try:
         # Validate that all 10 clients received every single message without drops
         for idx in range(concurrency_count):
-            assert client_errors[idx] is None, f"Client {idx} failed with error: {client_errors[idx]}"
+            assert client_errors[idx] is None, (
+                f"Client {idx} failed with error: {client_errors[idx]}"
+            )
             frames = client_results[idx]
             assert len(frames) == expected_message_count, (
                 f"Client {idx} received {len(frames)} frames, expected {expected_message_count}. "
@@ -255,7 +252,12 @@ def test_10_concurrent_websockets_receive_all_messages() -> None:
 
             # Final frame is ANALYSIS_DONE
             terminal_frame = frames[-1]
-            assert terminal_frame.get("type") in ("ANALYSIS_DONE", "analysis_done", "complete", "COMPLETE")
+            assert terminal_frame.get("type") in (
+                "ANALYSIS_DONE",
+                "analysis_done",
+                "complete",
+                "COMPLETE",
+            )
             assert terminal_frame.get("result") is not None
             assert "insights" in terminal_frame.get("result", {})
 

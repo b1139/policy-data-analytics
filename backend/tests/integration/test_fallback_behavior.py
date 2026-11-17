@@ -273,7 +273,9 @@ async def test_primary_fails_and_fallback_disabled_analysis_status_failed(
 
     # Primary called, but fallback was NOT called
     assert failing_primary.call_count >= 1
-    assert working_fallback.call_count == 0, "Fallback provider should not be called when LLM_FALLBACK=False"
+    assert working_fallback.call_count == 0, (
+        "Fallback provider should not be called when LLM_FALLBACK=False"
+    )
 
     analysis_record = await get_analysis(async_db, analysis_id)
     assert analysis_record is not None

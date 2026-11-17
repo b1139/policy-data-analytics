@@ -581,12 +581,16 @@ async def test_analysis_service_run_pipeline_sets_running(async_db: AsyncSession
     channel = get_channel_name(analysis.id)
     q = await in_memory_broker.subscribe(channel)
 
-    async def fake_run_analysis(analysis_id, db):
-        await publish_step(analysis_id, format_status_change_message(analysis_id, AnalysisStatus.RUNNING))
+    async def fake_run_analysis(analysis_id, db=None, **kwargs):  # noqa: ARG001
+        await publish_step(
+            analysis_id, format_status_change_message(analysis_id, AnalysisStatus.RUNNING)
+        )
         return {"status": "done"}
 
-    with patch("app.services.analysis_service.async_session_factory") as mock_session_factory, \
-         patch("app.agents.graph.run_analysis", side_effect=fake_run_analysis):
+    with (
+        patch("app.services.analysis_service.async_session_factory") as mock_session_factory,
+        patch("app.agents.graph.run_analysis", side_effect=fake_run_analysis),
+    ):
         mock_session_factory.return_value.__aenter__.return_value = async_db
         mock_session_factory.return_value.__aexit__.return_value = None
 

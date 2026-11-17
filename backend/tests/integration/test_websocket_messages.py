@@ -123,7 +123,10 @@ async def test_asyncio_pubsub_event_collection() -> None:
 
         # 1. Assert: at least 1 AGENT_STEP message per agent
         agent_step_messages = [
-            m for m in collected if m.get("type") in (WSMessageType.AGENT_STEP.value, WSMessageType.AGENT_STEP_UPPER.value)
+            m
+            for m in collected
+            if m.get("type")
+            in (WSMessageType.AGENT_STEP.value, WSMessageType.AGENT_STEP_UPPER.value)
         ]
         assert len(agent_step_messages) >= 3
 
@@ -149,13 +152,13 @@ async def test_asyncio_pubsub_event_collection() -> None:
 
         # 3. Assert: messages arrive in sequence_no order
         seq_nos = [
-            m["sequence_no"]
-            for m in agent_step_messages
-            if m.get("sequence_no") is not None
+            m["sequence_no"] for m in agent_step_messages if m.get("sequence_no") is not None
         ]
         assert len(seq_nos) >= 3
         assert seq_nos == sorted(seq_nos), f"Sequence numbers {seq_nos} not strictly non-decreasing"
-        assert seq_nos == list(range(1, len(seq_nos) + 1)), f"Sequence numbers {seq_nos} not sequential"
+        assert seq_nos == list(range(1, len(seq_nos) + 1)), (
+            f"Sequence numbers {seq_nos} not sequential"
+        )
 
     finally:
         await in_memory_broker.unsubscribe(channel, ws_queue)
@@ -256,10 +259,7 @@ def test_websocket_client_stream_live_pipeline() -> None:
         assert len(received_frames) >= 4, f"Expected >= 4 frames, received {len(received_frames)}"
 
         # 1. Assert: at least 1 AGENT_STEP message per agent
-        agent_steps = [
-            f for f in received_frames
-            if f.get("type") in ("AGENT_STEP", "agent_step")
-        ]
+        agent_steps = [f for f in received_frames if f.get("type") in ("AGENT_STEP", "agent_step")]
         assert len(agent_steps) >= 3
 
         agents_seen = {f.get("agent") for f in agent_steps}
@@ -278,7 +278,9 @@ def test_websocket_client_stream_live_pipeline() -> None:
         seq_nos = [f["sequence_no"] for f in agent_steps if f.get("sequence_no") is not None]
         assert len(seq_nos) >= 3
         assert seq_nos == sorted(seq_nos), f"Sequence numbers {seq_nos} not ordered"
-        assert seq_nos == list(range(1, len(seq_nos) + 1)), f"Sequence numbers {seq_nos} not contiguous"
+        assert seq_nos == list(range(1, len(seq_nos) + 1)), (
+            f"Sequence numbers {seq_nos} not contiguous"
+        )
 
     finally:
         app.dependency_overrides.clear()

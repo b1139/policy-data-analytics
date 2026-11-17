@@ -18,10 +18,8 @@ from app.agents.coordinator import (
     coordinator_node,
     generate_rule_based_plan,
 )
-from app.agents.state import AgentName, AgentState, ResearchPlan
+from app.agents.state import AgentName, AgentState
 from app.llm.base import LLMResponse
-from app.llm.mock_provider import MockLLMProvider
-
 
 REQUIRED_RESEARCH_PLAN_FIELDS = [
     "query_intent",
@@ -74,7 +72,10 @@ class TestStructuredOutput:
             assert field in plan, f"Missing required field in parsed ResearchPlan: {field}"
             assert plan[field], f"Field '{field}' should not be empty"
 
-        assert plan["query_intent"] == "Analyze resident employment trends and wage progression in Singapore"
+        assert (
+            plan["query_intent"]
+            == "Analyze resident employment trends and wage progression in Singapore"
+        )
         assert "singstat" in plan["sources"]
         assert len(plan["planned_datasets"]) >= 1
         assert any(ds.get("dataset_id") == "M810361" for ds in plan["planned_datasets"])
@@ -86,7 +87,7 @@ class TestStructuredOutput:
         invalid_raw_json = "I am an AI and here is your plan: { 'query_intent': broken json ... "
 
         # Directly verifying parse failure triggers fallback via helper logic
-        with pytest.raises(Exception):
+        with pytest.raises((json.JSONDecodeError, ValueError)):
             _parse_and_validate_plan(invalid_raw_json, query)
 
         # Fallback generator directly produces valid ResearchPlan

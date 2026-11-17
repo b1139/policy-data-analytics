@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     def mock_llm(self) -> bool:
         """Accessor for mock LLM mode flag."""
         import os
+
         env_val = os.environ.get("MOCK_LLM")
         if env_val is not None:
             return env_val.lower() in ("true", "1", "yes")
@@ -80,18 +81,21 @@ class Settings(BaseSettings):
     def primary_llm_provider(self) -> str:
         """Accessor for primary LLM provider identifier."""
         import os
+
         return os.environ.get("PRIMARY_LLM_PROVIDER", self.PRIMARY_LLM_PROVIDER)
 
     @property
     def fallback_llm_provider(self) -> str:
         """Accessor for fallback LLM provider identifier."""
         import os
+
         return os.environ.get("FALLBACK_LLM_PROVIDER", self.FALLBACK_LLM_PROVIDER)
 
     @property
     def llm_fallback(self) -> bool:
         """Accessor for LLM fallback enablement flag."""
         import os
+
         env_val = os.environ.get("LLM_FALLBACK")
         if env_val is not None:
             return env_val.lower() in ("true", "1", "yes")

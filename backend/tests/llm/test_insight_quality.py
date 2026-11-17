@@ -126,7 +126,9 @@ class TestInsightQuality:
         )
 
         year_matches = re.findall(r"\b(?:19|20)\d{2}\b", insight)
-        assert len(year_matches) >= 1, "Expected at least 1 year reference in the insight narrative."
+        assert len(year_matches) >= 1, (
+            "Expected at least 1 year reference in the insight narrative."
+        )
         assert any(y in {"2019", "2020", "2021", "2022", "2023"} for y in year_matches)
 
     def test_fallback_insight_contains_percentage_or_numeric_value(

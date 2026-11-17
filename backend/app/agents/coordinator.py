@@ -5,6 +5,7 @@ import logging
 import re
 import uuid
 from contextvars import ContextVar
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -135,7 +136,15 @@ SINGAPORE_DATASET_CATALOG: dict[str, dict[str, Any]] = {
         "metrics": ["total_population", "resident_population"],
     },
     "business": {
-        "topics": ["business", "company", "enterprise", "registration", "formation", "cessation", "acra"],
+        "topics": [
+            "business",
+            "company",
+            "enterprise",
+            "registration",
+            "formation",
+            "cessation",
+            "acra",
+        ],
         "singstat_id": "M810361",
         "singstat_title": "Business Performance and Formation Indicators",
         "mock_id": "business_registrations",
@@ -158,20 +167,30 @@ def detect_chart_type_from_query(query: str, date_range: tuple[str, str] | list[
     has_two_distinct_years = len(years) == 2 and years[0] != years[1]
 
     if (is_comparison or has_two_distinct_years) and any(
-        w in q_lower for w in ("between", "vs", "versus", "compared", "growth", "difference", "compare")
+        w in q_lower
+        for w in ("between", "vs", "versus", "compared", "growth", "difference", "compare")
     ):
         return "grouped_bar"
 
     # 2. Composition / shares
-    if any(k in q_lower for k in ("share", "shares", "proportion", "breakdown", "composition", "percentage", "pie")):
+    if any(
+        k in q_lower
+        for k in ("share", "shares", "proportion", "breakdown", "composition", "percentage", "pie")
+    ):
         return "pie"
 
     # 3. Categorical distribution or ranking across sectors
-    if any(k in q_lower for k in ("rank", "top ", "by industry", "by sector", "distribution", "ranking")):
+    if any(
+        k in q_lower
+        for k in ("rank", "top ", "by industry", "by sector", "distribution", "ranking")
+    ):
         return "horizontal_bar"
 
     # 4. Multi-period time series trend
-    if any(k in q_lower for k in ("trend", "historical", "over time", "trajectory", "evolution", "quarterly")):
+    if any(
+        k in q_lower
+        for k in ("trend", "historical", "over time", "trajectory", "evolution", "quarterly")
+    ):
         return "line"
 
     if has_two_distinct_years:
@@ -181,7 +200,7 @@ def detect_chart_type_from_query(query: str, date_range: tuple[str, str] | list[
 
 
 def build_shrink_instructions(
-    query: str,
+    _query: str,
     date_range: tuple[str, str] | list[str],
     target_sectors: list[str],
     topics: list[str],
@@ -221,7 +240,9 @@ def extract_years_from_query(query: str) -> tuple[str, str]:
     """Extract start and end year strings from query or default to ('2019', '2025')."""
     # Match patterns like 2019-2024, 2019 to 2024, 2024 vs 2025
     range_match = re.search(
-        r"\b(19\d\d|20\d\d)\s*(?:-|–|to|vs|versus|compared\s+to|and)\s*(19\d\d|20\d\d)\b", query, re.IGNORECASE
+        r"\b(19\d\d|20\d\d)\s*(?:-|–|to|vs|versus|compared\s+to|and)\s*(19\d\d|20\d\d)\b",
+        query,
+        re.IGNORECASE,
     )
     if range_match:
         y1, y2 = range_match.group(1), range_match.group(2)
@@ -316,8 +337,14 @@ def generate_rule_based_plan(query: str) -> ResearchPlan:
     planned_datasets = [
         {
             "source": "singstat",
-            "dataset_id": catalog_entry.get("singstat_id", "M810361") if catalog_entry else "M810361",
-            "title": catalog_entry.get("singstat_title", f"SingStat {target_sectors[0]} Sector Performance ({time_period})") if catalog_entry else f"SingStat {target_sectors[0]} Sector Performance ({time_period})",
+            "dataset_id": catalog_entry.get("singstat_id", "M810361")
+            if catalog_entry
+            else "M810361",
+            "title": catalog_entry.get(
+                "singstat_title", f"SingStat {target_sectors[0]} Sector Performance ({time_period})"
+            )
+            if catalog_entry
+            else f"SingStat {target_sectors[0]} Sector Performance ({time_period})",
             "time_filter": time_filter,
         },
         {
@@ -333,8 +360,14 @@ def generate_rule_based_plan(query: str) -> ResearchPlan:
         planned_datasets.append(
             {
                 "source": "mock",
-                "dataset_id": catalog_entry.get("mock_id", "employment_by_sector") if catalog_entry else "employment_by_sector",
-                "title": catalog_entry.get("mock_title", f"Singapore Policy Benchmark Dataset ({time_period})") if catalog_entry else f"Singapore Policy Benchmark Dataset ({time_period})",
+                "dataset_id": catalog_entry.get("mock_id", "employment_by_sector")
+                if catalog_entry
+                else "employment_by_sector",
+                "title": catalog_entry.get(
+                    "mock_title", f"Singapore Policy Benchmark Dataset ({time_period})"
+                )
+                if catalog_entry
+                else f"Singapore Policy Benchmark Dataset ({time_period})",
                 "time_filter": time_filter,
             }
         )
@@ -419,7 +452,9 @@ def _parse_and_validate_plan(raw_json: str, query: str) -> ResearchPlan:
         rec_chart = detect_chart_type_from_query(query, date_range)
 
     # Time filter validation
-    time_filter = str(data.get("time_filter") or fallback.get("time_filter") or f"{date_range[0]},{date_range[1]}")
+    time_filter = str(
+        data.get("time_filter") or fallback.get("time_filter") or f"{date_range[0]},{date_range[1]}"
+    )
 
     # Shrink instructions validation
     raw_shrink = data.get("shrink_instructions")
@@ -430,7 +465,10 @@ def _parse_and_validate_plan(raw_json: str, query: str) -> ResearchPlan:
             "time_filter": str(raw_shrink.get("time_filter") or time_filter),
             "metric_columns": [str(m) for m in raw_shrink.get("metric_columns", required_metrics)],
             "target_sectors": target_sectors,
-            "slice_clue": str(raw_shrink.get("slice_clue") or fallback["shrink_instructions"].get("slice_clue", "")),
+            "slice_clue": str(
+                raw_shrink.get("slice_clue")
+                or fallback["shrink_instructions"].get("slice_clue", "")
+            ),
         }
     else:
         shrink_instructions = build_shrink_instructions(query, date_range, target_sectors, topics)
@@ -454,7 +492,16 @@ def _parse_and_validate_plan(raw_json: str, query: str) -> ResearchPlan:
             src = str(ds.get("source") or "singstat").lower()
             d_id = str(ds.get("dataset_id") or ds.get("id") or "").strip()
             # If dataset_id is a generic placeholder like 'dataset1', remap to real Singapore catalog ID
-            if not d_id or d_id.lower() in ("dataset1", "dataset2", "dataset_1", "dataset_2", "id", "id1", "none", "null"):
+            if not d_id or d_id.lower() in (
+                "dataset1",
+                "dataset2",
+                "dataset_1",
+                "dataset_2",
+                "id",
+                "id1",
+                "none",
+                "null",
+            ):
                 cat = SINGAPORE_DATASET_CATALOG.get("employment")
                 for tp in topics:
                     if tp in SINGAPORE_DATASET_CATALOG:
@@ -462,13 +509,25 @@ def _parse_and_validate_plan(raw_json: str, query: str) -> ResearchPlan:
                         break
                 if src == "singstat":
                     d_id = cat.get("singstat_id", "M810361") if cat else "M810361"
-                    title = cat.get("singstat_title", ds.get("title", "SingStat Dataset")) if cat else ds.get("title", "SingStat Dataset")
+                    title = (
+                        cat.get("singstat_title", ds.get("title", "SingStat Dataset"))
+                        if cat
+                        else ds.get("title", "SingStat Dataset")
+                    )
                 elif src == "datagov":
                     d_id = None  # live discovery by keywords in the extraction agent
                     title = ds.get("title") or f"Data.gov.sg {' '.join(topics)} dataset"
                 else:
-                    d_id = cat.get("mock_id", "employment_by_sector") if cat else "employment_by_sector"
-                    title = cat.get("mock_title", ds.get("title", "Singapore Dataset")) if cat else ds.get("title", "Singapore Dataset")
+                    d_id = (
+                        cat.get("mock_id", "employment_by_sector")
+                        if cat
+                        else "employment_by_sector"
+                    )
+                    title = (
+                        cat.get("mock_title", ds.get("title", "Singapore Dataset"))
+                        if cat
+                        else ds.get("title", "Singapore Dataset")
+                    )
             else:
                 title = ds.get("title", f"{src} dataset ({d_id})")
 
@@ -581,11 +640,17 @@ async def coordinator_node(
     # Step 2: Formulate ResearchPlan via LLM or rule-based fallback
     plan: ResearchPlan | None = None
     router = get_llm_router()
-    active_provider = getattr(router, "primary_name", getattr(settings, "primary_llm_provider", "bedrock"))
+    active_provider = getattr(
+        router, "primary_name", getattr(settings, "primary_llm_provider", "bedrock")
+    )
     active_model = getattr(
         router.primary,
         "model",
-        getattr(settings, "bedrock_model_id" if active_provider == "bedrock" else "gemini_model", "apac.amazon.nova-lite-v1:0"),
+        getattr(
+            settings,
+            "bedrock_model_id" if active_provider == "bedrock" else "gemini_model",
+            "apac.amazon.nova-lite-v1:0",
+        ),
     )
     model_info = {
         "agent": "coordinator",

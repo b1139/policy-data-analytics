@@ -6,7 +6,6 @@ import asyncio
 import logging
 import time
 from contextvars import ContextVar
-from functools import lru_cache
 from typing import Any
 
 from app.core.config import settings
@@ -28,7 +27,9 @@ logger = logging.getLogger(__name__)
 # Context variable tracking active query/analysis identifier
 current_query_context: ContextVar[str | None] = ContextVar("current_query_context", default=None)
 current_query_fallen_back: ContextVar[bool] = ContextVar("current_query_fallen_back", default=False)
-current_query_gemini_exhausted: ContextVar[bool] = ContextVar("current_query_gemini_exhausted", default=False)
+current_query_gemini_exhausted: ContextVar[bool] = ContextVar(
+    "current_query_gemini_exhausted", default=False
+)
 
 
 def _create_provider_by_name(provider_name: str, **kwargs: Any) -> AbstractLLMProvider:
@@ -115,7 +116,9 @@ class LLMRouter:
         self.llm_fallback = (
             llm_fallback
             if llm_fallback is not None
-            else bool(getattr(settings, "llm_fallback", False) or getattr(settings, "LLM_FALLBACK", False))
+            else bool(
+                getattr(settings, "llm_fallback", False) or getattr(settings, "LLM_FALLBACK", False)
+            )
         )
         self.max_retries = max(1, max_retries)
         self.backoff_factor = max(0.0, float(backoff_factor))
@@ -490,20 +493,31 @@ def get_llm_router() -> LLMRouter:
     """
     global _cached_router, _cached_config_key
 
-    primary_name = (
-        getattr(settings, "primary_llm_provider", None)
-        or getattr(settings, "PRIMARY_LLM_PROVIDER", "gemini")
+    primary_name = getattr(settings, "primary_llm_provider", None) or getattr(
+        settings, "PRIMARY_LLM_PROVIDER", "gemini"
     )
-    fallback_name = (
-        getattr(settings, "fallback_llm_provider", None)
-        or getattr(settings, "FALLBACK_LLM_PROVIDER", "bedrock")
+    fallback_name = getattr(settings, "fallback_llm_provider", None) or getattr(
+        settings, "FALLBACK_LLM_PROVIDER", "bedrock"
     )
     mock_mode = bool(getattr(settings, "mock_llm", False) or getattr(settings, "MOCK_LLM", False))
-    llm_fallback = bool(getattr(settings, "llm_fallback", False) or getattr(settings, "LLM_FALLBACK", False))
-    bedrock_model = getattr(settings, "bedrock_model_id", None) or getattr(settings, "BEDROCK_MODEL_ID", None)
-    gemini_model = getattr(settings, "gemini_model", None) or getattr(settings, "GEMINI_MODEL", None)
+    llm_fallback = bool(
+        getattr(settings, "llm_fallback", False) or getattr(settings, "LLM_FALLBACK", False)
+    )
+    bedrock_model = getattr(settings, "bedrock_model_id", None) or getattr(
+        settings, "BEDROCK_MODEL_ID", None
+    )
+    gemini_model = getattr(settings, "gemini_model", None) or getattr(
+        settings, "GEMINI_MODEL", None
+    )
 
-    current_key = (primary_name, fallback_name, mock_mode, llm_fallback, bedrock_model, gemini_model)
+    current_key = (
+        primary_name,
+        fallback_name,
+        mock_mode,
+        llm_fallback,
+        bedrock_model,
+        gemini_model,
+    )
 
     if _cached_router is None or _cached_config_key != current_key:
         logger.info(

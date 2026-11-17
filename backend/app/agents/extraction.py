@@ -16,6 +16,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableBinding
+
 try:
     from langgraph.graph.state import CompiledStateGraph as CompiledGraph
 except ImportError:
@@ -167,6 +168,7 @@ def _shrink_dataframe(
 
     try:
         import io
+
         import pandas as pd
 
         df = pd.read_json(io.StringIO(df_json), orient="split")
@@ -175,9 +177,7 @@ def _shrink_dataframe(
             return df_json, 0, ""
 
         filter_vals = [
-            str(v).strip()
-            for v in shrink_instructions.get("filter_values", [])
-            if str(v).strip()
+            str(v).strip() for v in shrink_instructions.get("filter_values", []) if str(v).strip()
         ]
         filtered = False
 
@@ -185,8 +185,11 @@ def _shrink_dataframe(
             filter_col = shrink_instructions.get("filter_column", "year")
             for candidate in (filter_col, "year", "period", "period_start"):
                 if candidate in df.columns:
-                    mask = df[candidate].astype(str).str.strip().apply(
-                        lambda val: any(fv in val for fv in filter_vals)
+                    mask = (
+                        df[candidate]
+                        .astype(str)
+                        .str.strip()
+                        .apply(lambda val: any(fv in val for fv in filter_vals))
                     )
                     if mask.any():
                         df = df[mask].copy()
@@ -526,7 +529,10 @@ async def extraction_node(state: AgentState, db: AsyncSession | None = None) -> 
                 try:
                     mock_id = (
                         "employment_by_sector"
-                        if any(k in str(dataset_id).lower() for k in ("m810", "employ", "labor", "workforce"))
+                        if any(
+                            k in str(dataset_id).lower()
+                            for k in ("m810", "employ", "labor", "workforce")
+                        )
                         else dataset_id
                     )
                     fb_params: dict[str, Any] = {
@@ -559,7 +565,10 @@ async def extraction_node(state: AgentState, db: AsyncSession | None = None) -> 
                     )
                     if search_results and search_results[0].get("id") != dataset_id:
                         fallback_id = search_results[0].get("id")
-                        fb_search_params: dict[str, Any] = {"source": source, "dataset_id": fallback_id}
+                        fb_search_params: dict[str, Any] = {
+                            "source": source,
+                            "dataset_id": fallback_id,
+                        }
                         if time_filter:
                             fb_search_params["time_filter"] = time_filter
                         fallback_df_json = await fetch_dataset.ainvoke(fb_search_params)
@@ -718,6 +727,7 @@ async def extraction_node(state: AgentState, db: AsyncSession | None = None) -> 
             if active_db is not None and analysis_uuid is not None:
                 try:
                     from app.crud.dataset import get_or_create_dataset, link_dataset_to_analysis
+
                     db_dataset, _ = await get_or_create_dataset(
                         db=active_db,
                         source=source,

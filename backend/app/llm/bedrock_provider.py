@@ -65,12 +65,12 @@ class BedrockProvider(AbstractLLMProvider):
         )
         if bedrock_api_key is not None:
             self.aws_access_key_id = aws_access_key_id if aws_access_key_id is not None else ""
-            self.aws_secret_access_key = aws_secret_access_key if aws_secret_access_key is not None else ""
+            self.aws_secret_access_key = (
+                aws_secret_access_key if aws_secret_access_key is not None else ""
+            )
         else:
             self.aws_access_key_id = (
-                aws_access_key_id
-                if aws_access_key_id is not None
-                else settings.AWS_ACCESS_KEY_ID
+                aws_access_key_id if aws_access_key_id is not None else settings.AWS_ACCESS_KEY_ID
             )
             self.aws_secret_access_key = (
                 aws_secret_access_key

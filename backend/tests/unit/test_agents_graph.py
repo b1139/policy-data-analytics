@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from langgraph.graph import END
+
 try:
     from langgraph.graph.state import CompiledStateGraph as CompiledGraph
 except ImportError:

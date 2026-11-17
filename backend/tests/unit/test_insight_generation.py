@@ -153,7 +153,8 @@ class TestInsightGeneratorLLM:
         assert "Analyze Singapore employment trends from 2019 to 2023" in user_content
         assert "SingStat Labour Force Statistics" in user_content
         assert (
-            "Only reference statistics from the provided stats_dict. Do not invent numbers." in user_content
+            "Only reference statistics from the provided stats_dict. Do not invent numbers."
+            in user_content
             or "Markdown, exactly:" in user_content
         )
         assert "82.5" in user_content

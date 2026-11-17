@@ -13,9 +13,9 @@ Verifies:
 
 from __future__ import annotations
 
+import io
 from unittest.mock import MagicMock, patch
 
-import io
 import httpx
 import pandas as pd
 import pytest
@@ -137,7 +137,9 @@ async def test_singstat_search_fallback_on_http_error(singstat_source: SingStatD
 
 
 @pytest.mark.asyncio
-async def test_singstat_search_no_fallback_when_disabled(singstat_source: SingStatDataSource) -> None:
+async def test_singstat_search_no_fallback_when_disabled(
+    singstat_source: SingStatDataSource,
+) -> None:
     """When USE_MOCK_DATA_AS_FALLBACK=False (default), SingStat search returns empty list on HTTP error without mock data."""
     with (
         patch.object(settings, "USE_MOCK_DATA_AS_FALLBACK", False),
@@ -283,7 +285,9 @@ async def test_singstat_fetch_fallback_on_http_error(singstat_source: SingStatDa
 
 
 @pytest.mark.asyncio
-async def test_singstat_fetch_no_fallback_when_disabled(singstat_source: SingStatDataSource) -> None:
+async def test_singstat_fetch_no_fallback_when_disabled(
+    singstat_source: SingStatDataSource,
+) -> None:
     """When USE_MOCK_DATA_AS_FALLBACK=False (default), SingStat fetch returns empty DataFrame on HTTP error."""
     with (
         patch.object(settings, "USE_MOCK_DATA_AS_FALLBACK", False),
@@ -608,7 +612,9 @@ async def test_datagov_fetch_excel_resource(datagov_source: DataGovDataSource) -
     mock_response = httpx.Response(
         status_code=200,
         content=excel_bytes,
-        headers={"content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+        headers={
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
         request=httpx.Request("GET", "https://data.gov.sg/api/action/datastore_search"),
     )
 
@@ -638,8 +644,12 @@ async def test_singstat_fetch_excel_resource(singstat_source: SingStatDataSource
     mock_response = httpx.Response(
         status_code=200,
         content=excel_bytes,
-        headers={"content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
-        request=httpx.Request("GET", "https://tablebuilder.singstat.gov.sg/api/table/tabledata/T123"),
+        headers={
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        request=httpx.Request(
+            "GET", "https://tablebuilder.singstat.gov.sg/api/table/tabledata/T123"
+        ),
     )
 
     with patch("httpx.AsyncClient.get", return_value=mock_response):
@@ -649,7 +659,6 @@ async def test_singstat_fetch_excel_resource(singstat_source: SingStatDataSource
     assert len(df) == 3
     assert "value" in df.columns
     assert (df["_source"] == "singstat").all()
-
 
 
 # ==============================================================================

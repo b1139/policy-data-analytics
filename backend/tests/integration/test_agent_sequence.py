@@ -127,9 +127,15 @@ async def test_agent_execution_sequence_in_database(async_db: AsyncSession) -> N
     assert len(logs) >= 3, f"Expected at least 3 logs, got {len(logs)}"
 
     # Partition logs by agent
-    coord_logs = [item for item in logs if item.agent_name in (AgentName.COORDINATOR, "coordinator")]
-    extract_logs = [item for item in logs if item.agent_name in (AgentName.EXTRACTION, "extraction")]
-    analytics_logs = [item for item in logs if item.agent_name in (AgentName.ANALYTICS, "analytics")]
+    coord_logs = [
+        item for item in logs if item.agent_name in (AgentName.COORDINATOR, "coordinator")
+    ]
+    extract_logs = [
+        item for item in logs if item.agent_name in (AgentName.EXTRACTION, "extraction")
+    ]
+    analytics_logs = [
+        item for item in logs if item.agent_name in (AgentName.ANALYTICS, "analytics")
+    ]
 
     assert len(coord_logs) > 0, "Coordinator agent logs missing"
     assert len(extract_logs) > 0, "Extraction agent logs missing"

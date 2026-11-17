@@ -41,7 +41,9 @@ def employment_full_df() -> pd.DataFrame:
 # ==============================================================================
 
 
-def test_filter_dataframe_by_query_comparison_2025_vs_2026(employment_full_df: pd.DataFrame) -> None:
+def test_filter_dataframe_by_query_comparison_2025_vs_2026(
+    employment_full_df: pd.DataFrame,
+) -> None:
     """filter_dataframe_by_query filters multi-year dataset to strictly 2025 and 2026."""
     query = "compare employment growth 2025 vs 2026"
     filtered_df, meta = filter_dataframe_by_query(employment_full_df, query=query)
@@ -204,11 +206,18 @@ def test_citation_url_resolution_direct_singstat_and_mom() -> None:
     assert url_fixed == "https://tablebuilder.singstat.gov.sg/table/TS/M810361"
 
     # 3. Employment topic without M-code must route to official SingStat Labour theme
-    url_emp = _resolve_citation_url(source="SingStat", dataset_id="employment_by_sector", title="Employment by Sector")
-    assert url_emp == "https://www.singstat.gov.sg/find-data/search-by-theme/economy/labour-and-employment"
+    url_emp = _resolve_citation_url(
+        source="SingStat", dataset_id="employment_by_sector", title="Employment by Sector"
+    )
+    assert (
+        url_emp
+        == "https://www.singstat.gov.sg/find-data/search-by-theme/economy/labour-and-employment"
+    )
 
     # 4. MOM source routes to official MOM Summary table
-    url_mom = _resolve_citation_url(source="Ministry of Manpower (MOM)", dataset_id="employment_by_sector")
+    url_mom = _resolve_citation_url(
+        source="Ministry of Manpower (MOM)", dataset_id="employment_by_sector"
+    )
     assert url_mom == "https://stats.mom.gov.sg/Pages/Employment-Summary-Table.aspx"
 
     # 5. Data.gov.sg fake hash URL (d_...) must be mapped to valid query search

@@ -37,7 +37,9 @@ class DataGovDataSource(AbstractDataSource):
     PACKAGE_SEARCH_ENDPOINT: str = "https://data.gov.sg/api/action/package_search"
     DATASTORE_SEARCH_ENDPOINT: str = "https://data.gov.sg/api/action/datastore_search"
     V2_DATASETS_ENDPOINT: str = "https://api-production.data.gov.sg/v2/public/api/datasets"
-    V1_INITIATE_DOWNLOAD_ENDPOINT: str = "https://api-open.data.gov.sg/v1/public/api/datasets/{dataset_id}/initiate-download"
+    V1_INITIATE_DOWNLOAD_ENDPOINT: str = (
+        "https://api-open.data.gov.sg/v1/public/api/datasets/{dataset_id}/initiate-download"
+    )
     HEALTH_CHECK_URL: str = "https://data.gov.sg/api/action/package_search?rows=1"
 
     # Timeouts
@@ -173,10 +175,17 @@ class DataGovDataSource(AbstractDataSource):
                 if v2_results:
                     return v2_results
 
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
-                logger.info("DataGov live search yielded no records for '%s'; using mock fallback", kw)
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
+                logger.info(
+                    "DataGov live search yielded no records for '%s'; using mock fallback", kw
+                )
                 return await self._mock_source.search(keywords, **filters)
-            logger.warning("DataGov live search yielded no records for '%s' (mock fallback disabled)", kw)
+            logger.warning(
+                "DataGov live search yielded no records for '%s' (mock fallback disabled)", kw
+            )
             return []
 
         except Exception as exc:
@@ -185,7 +194,10 @@ class DataGovDataSource(AbstractDataSource):
                 if v2_results:
                     return v2_results
 
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
                 logger.warning(
                     "DataGov search request failed for keywords '%s' (%s); falling back to mock",
                     kw,
@@ -294,7 +306,10 @@ class DataGovDataSource(AbstractDataSource):
                             if csv_resp.status_code == 200:
                                 raw_df = pd.read_csv(io.StringIO(csv_resp.text))
                                 if not raw_df.empty:
-                                    logger.info("DataGov successfully downloaded live dataset '%s'", clean_id)
+                                    logger.info(
+                                        "DataGov successfully downloaded live dataset '%s'",
+                                        clean_id,
+                                    )
                                     return self._finalize_dataframe(
                                         raw_df,
                                         dataset_id=clean_id,
@@ -326,7 +341,10 @@ class DataGovDataSource(AbstractDataSource):
             if raw_df is not None and not raw_df.empty:
                 return self._finalize_dataframe(raw_df, dataset_id=clean_id, url=url)
 
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
                 logger.warning(
                     "DataGov response for '%s' could not be parsed into non-empty DataFrame; falling back to mock",
                     clean_id,
@@ -374,7 +392,10 @@ class DataGovDataSource(AbstractDataSource):
                 except Exception as retry_exc:
                     logger.debug("DataGov live discovery retry failed: %s", retry_exc)
 
-            if getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False) or settings.USE_MOCK_DATA_SOURCES:
+            if (
+                getattr(settings, "USE_MOCK_DATA_AS_FALLBACK", False)
+                or settings.USE_MOCK_DATA_SOURCES
+            ):
                 logger.warning(
                     "DataGov fetch failed for '%s' (%s); falling back to mock data",
                     clean_id,

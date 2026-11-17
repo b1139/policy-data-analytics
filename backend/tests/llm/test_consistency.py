@@ -7,7 +7,6 @@ Verifies:
 """
 
 import re
-from typing import Set
 
 import pytest
 
@@ -16,21 +15,49 @@ from app.llm.router import LLMRouter
 from app.schemas.analytics import StatsResult, SummaryResult, TrendResult
 from app.services.analysis_service import InsightGenerator
 
-
 STOPWORDS: set[str] = {
-    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "he",
-    "in", "is", "it", "its", "of", "on", "that", "the", "to", "was", "were",
-    "will", "with", "across", "between", "our", "all", "this", "these", "those",
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "has",
+    "he",
+    "in",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "that",
+    "the",
+    "to",
+    "was",
+    "were",
+    "will",
+    "with",
+    "across",
+    "between",
+    "our",
+    "all",
+    "this",
+    "these",
+    "those",
 }
 
 
-def extract_keywords(text: str) -> Set[str]:
+def extract_keywords(text: str) -> set[str]:
     """Tokenize text into lowercase alphanumeric keywords, filtering stopwords."""
     tokens = re.findall(r"\b[a-z]{3,}\b", text.lower())
     return {t for t in tokens if t not in STOPWORDS}
 
 
-def calculate_overlap_ratio(set_a: Set[str], set_b: Set[str]) -> float:
+def calculate_overlap_ratio(set_a: set[str], set_b: set[str]) -> float:
     """Calculate overlap coefficient between two token sets."""
     if not set_a or not set_b:
         return 0.0
@@ -117,9 +144,15 @@ class TestLLMConsistency:
         overlap_1_3 = calculate_overlap_ratio(keywords_1, keywords_3)
 
         # Verify all pairwise overlaps satisfy >= 70% threshold
-        assert overlap_1_2 >= 0.70, f"Overlap between run 1 and 2 is {overlap_1_2:.2%}, expected >= 70%"
-        assert overlap_2_3 >= 0.70, f"Overlap between run 2 and 3 is {overlap_2_3:.2%}, expected >= 70%"
-        assert overlap_1_3 >= 0.70, f"Overlap between run 1 and 3 is {overlap_1_3:.2%}, expected >= 70%"
+        assert overlap_1_2 >= 0.70, (
+            f"Overlap between run 1 and 2 is {overlap_1_2:.2%}, expected >= 70%"
+        )
+        assert overlap_2_3 >= 0.70, (
+            f"Overlap between run 2 and 3 is {overlap_2_3:.2%}, expected >= 70%"
+        )
+        assert overlap_1_3 >= 0.70, (
+            f"Overlap between run 1 and 3 is {overlap_1_3:.2%}, expected >= 70%"
+        )
 
     def test_fallback_insights_maintain_high_topical_determinism(
         self,

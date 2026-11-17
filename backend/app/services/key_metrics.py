@@ -113,14 +113,22 @@ def compute_candidates(
     # ---- Time series (aggregated per period, chronological) ----
     series: pd.Series | None = None
     if t_col and t_col in work.columns:
-        agg = "sum" if (not is_pct_metric and any(k in v_col.lower() for k in _COUNT_HINTS)) else "mean"
+        agg = (
+            "sum"
+            if (not is_pct_metric and any(k in v_col.lower() for k in _COUNT_HINTS))
+            else "mean"
+        )
         grouped = work.groupby(t_col)[v_col].agg(agg)
         tnum = pd.to_numeric(pd.Series(grouped.index, index=grouped.index), errors="coerce")
         if tnum.notna().all():
             grouped = grouped.iloc[tnum.argsort().to_numpy()]
         else:
             tdt = pd.to_datetime(pd.Series(grouped.index, index=grouped.index), errors="coerce")
-            grouped = grouped.iloc[tdt.argsort().to_numpy()] if tdt.notna().all() else grouped.sort_index()
+            grouped = (
+                grouped.iloc[tdt.argsort().to_numpy()]
+                if tdt.notna().all()
+                else grouped.sort_index()
+            )
         series = grouped
 
     if series is not None and len(series) >= 1:
@@ -241,19 +249,27 @@ def compute_candidates(
             last_raw = work[t_col][work[t_col].map(_label) == _label(series.index[-1])]
             if not last_raw.empty:
                 sub = work[work[t_col].isin(last_raw.unique())]
-        by_cat = sub.groupby(s_col)[v_col].sum() if not is_pct_metric else sub.groupby(s_col)[v_col].mean()
+        by_cat = (
+            sub.groupby(s_col)[v_col].sum()
+            if not is_pct_metric
+            else sub.groupby(s_col)[v_col].mean()
+        )
         by_cat = by_cat[by_cat.notna()]
         if len(by_cat) > 1:
             top = by_cat.idxmax()
             total = float(by_cat.sum())
-            share = (float(by_cat.max()) / total * 100.0) if (total > 0 and not is_pct_metric) else None
+            share = (
+                (float(by_cat.max()) / total * 100.0) if (total > 0 and not is_pct_metric) else None
+            )
             cands.append(
                 {
                     "id": "top_category",
                     "label": f"Top {s_col.replace('_', ' ').title()}",
                     "value": str(top)[:28],
                     "caption": (
-                        f"{share:.1f}% of total" if share is not None else f"{fmt_val(float(by_cat.max()))}"
+                        f"{share:.1f}% of total"
+                        if share is not None
+                        else f"{fmt_val(float(by_cat.max()))}"
                     ),
                     "tone": "neutral",
                     "icon": "database",
@@ -364,7 +380,18 @@ async def build_key_metrics(
 
     chosen = await _llm_select(cands, query, insights, count) or []
     # Top up deterministically (preferred order) so we always return `count` tiles
-    priority = ["latest", "change", "peak", "top_category", "cagr", "average", "low", "volatility", "coverage", "categories"]
+    priority = [
+        "latest",
+        "change",
+        "peak",
+        "top_category",
+        "cagr",
+        "average",
+        "low",
+        "volatility",
+        "coverage",
+        "categories",
+    ]
     rank = {k: i for i, k in enumerate(priority)}
     for c in sorted(cands, key=lambda c: rank.get(c["id"], 99)):
         if len(chosen) >= count:
